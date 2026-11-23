@@ -41,9 +41,9 @@ html.lb-an #qa { margin-top: 90px; }
 .lb-fuell {
   position: absolute; inset: 0 auto 0 0; width: 0%;
   border-radius: inherit; overflow: hidden;
-  background: linear-gradient(90deg, #6d5cff 0%, #b04dff 55%, #ff6fb5 85%, #ffc65c 100%);
+  background: linear-gradient(90deg, #12b76a 0%, #22c55e 50%, #4ade80 85%, #86efac 100%);
   background-size: 620px 100%;
-  box-shadow: 0 0 10px rgba(176, 77, 255, .35);
+  box-shadow: 0 0 12px rgba(34, 197, 94, .45);
   transition: width .95s cubic-bezier(.22, 1.2, .36, 1);
 }
 .lb-fuell.ohne { transition: none; }
@@ -61,7 +61,7 @@ html.lb-an #qa { margin-top: 90px; }
 .lb-spitze {
   position: absolute; top: 50%; left: 0%; width: 14px; height: 14px;
   margin: -7px 0 0 -7px; border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, rgba(255, 214, 120, .9) 35%, rgba(255, 111, 181, 0) 70%);
+  background: radial-gradient(circle, #fff 0%, rgba(187, 247, 208, .95) 35%, rgba(74, 222, 128, 0) 70%);
   opacity: 0;
   transition: left .95s cubic-bezier(.22, 1.2, .36, 1);
 }
@@ -80,9 +80,9 @@ html.lb-an #qa { margin-top: 90px; }
 }
 .lb-plus {
   position: absolute; font-weight: 800; font-size: 17px; white-space: nowrap;
-  background: linear-gradient(90deg, #b04dff, #ff6fb5, #ffb13b);
+  background: linear-gradient(90deg, #16a34a, #22c55e, #4ade80);
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 1px 4px rgba(255, 111, 181, .45));
+  filter: drop-shadow(0 1px 4px rgba(34, 197, 94, .5));
   transform: translate(-50%, 0);
   pointer-events: none;
 }
@@ -98,7 +98,7 @@ html.lb-an #qa { margin-top: 90px; }
 /* Stern: markiert die Frage als wichtig (Ankis eigene Markierung) */
 .lb-rechts { display: inline-flex; align-items: baseline; gap: 12px; }
 .lb-stern {
-  pointer-events: auto; cursor: pointer; align-self: center;
+  margin: 0; pointer-events: auto; cursor: pointer; align-self: center;
   display: inline-flex; align-items: center; gap: 5px;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--lb-leise);
   background: transparent; border: 1px solid var(--lb-spur); border-radius: 99px;

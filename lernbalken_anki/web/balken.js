@@ -102,7 +102,7 @@
     return { x: spur.offsetLeft + spur.offsetWidth * angezeigt / 100, y: spur.offsetTop + spur.offsetHeight / 2 };
   }
 
-  var FARBEN = ['#ffd36e', '#ffffff', '#ff8fc8', '#c38bff', '#ffe9a8', '#8fd8ff'];
+  var FARBEN = ['#4ade80', '#ffffff', '#bbf7d0', '#ffd36e', '#86efac', '#a7f3d0'];
 
   function funken(anzahl) {
     if (ruhig) return;
