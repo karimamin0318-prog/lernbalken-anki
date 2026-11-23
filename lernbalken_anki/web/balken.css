@@ -97,15 +97,18 @@ html.lb-an #qa { margin-top: 90px; }
 
 /* Stern: markiert die Frage als wichtig (Ankis eigene Markierung) */
 .lb-rechts { display: inline-flex; align-items: baseline; gap: 12px; }
-.lb-stern {
+#lb-balken .lb-stern, #lb-balken .lb-stern:hover, #lb-balken .lb-stern:active {
+  background-image: none; box-shadow: none; transform: none; outline: none;
+}
+#lb-balken .lb-stern {
   margin: 0; pointer-events: auto; cursor: pointer; align-self: center;
   display: inline-flex; align-items: center; gap: 5px;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--lb-leise);
   background: transparent; border: 1px solid var(--lb-spur); border-radius: 99px;
   padding: 2px 9px 2px 7px;
 }
-.lb-stern svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-.lb-stern:hover { color: var(--lb-text); border-color: currentColor; }
-.lb-stern.an { color: #e6a700; border-color: rgba(230, 167, 0, .5); background: rgba(255, 200, 60, .12); }
-.lb-stern.an svg { fill: currentColor; }
+#lb-balken .lb-stern svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+#lb-balken .lb-stern:hover { color: var(--lb-text); border-color: currentColor; }
+#lb-balken .lb-stern.an { color: #e6a700; border-color: rgba(230, 167, 0, .5); background: rgba(255, 200, 60, .12); }
+#lb-balken .lb-stern.an svg { fill: currentColor; }
 .nightMode #lb-balken .lb-stern.an, #lb-balken.nacht .lb-stern.an { color: #ffc94d; }
