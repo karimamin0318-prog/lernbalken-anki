@@ -16,20 +16,25 @@
 .lbmc-opt {
   display: block; width: 100%; box-sizing: border-box;
   /* Anki gibt jedem Knopf im Lernfenster 1em Aussenabstand, daher margin: 0 */
-  margin: 0; text-align: left; font: inherit; font-size: 1.1em; line-height: 1.35; color: inherit;
+  margin: 0; text-align: left; font: inherit; font-size: 1.2em; line-height: 1.35; color: inherit;
   padding: 15px 20px; border-radius: 12px;
-  border: 2px solid rgba(120, 110, 160, .28);
-  background: rgba(255, 255, 255, .7);
+  /* Deckender Rand, Hintergrund nur innerhalb: so wirkt der Rand immer gleich dick, egal welche Farbe */
+  border: 2px solid #d4d0e2; background: #ffffff; background-clip: padding-box;
+  -webkit-appearance: none; appearance: none; outline: none; transform: none;
 }
-.nightMode .lbmc-opt { background: rgba(255, 255, 255, .05); border-color: rgba(200, 190, 255, .2); }
-button.lbmc-opt { cursor: pointer; transition: border-color .12s, background .12s, transform .08s; }
-button.lbmc-opt:hover { border-color: rgba(124, 92, 255, .6); }
-button.lbmc-opt:active { transform: scale(.99); }
-.lbmc-opt.gewaehlt { border-color: #7c5cff; background: rgba(124, 92, 255, .12); }
+.nightMode .lbmc-opt { border-color: #464354; background-color: #26252e; }
+/* Beim Drueberfahren aendert sich nur die Randfarbe: keine Groesse, keine Bewegung */
+button.lbmc-opt { cursor: pointer; transition: border-color .12s ease, background-color .12s ease; }
+button.lbmc-opt:hover, .nightMode button.lbmc-opt:hover { border-color: #8b6cff; }
+button.lbmc-opt:active, button.lbmc-opt:focus { transform: none; outline: none; }
+.lbmc-opt.gewaehlt, .nightMode .lbmc-opt.gewaehlt { border-color: #7c5cff; background-color: #ece7ff; }
+.nightMode .lbmc-opt.gewaehlt { background-color: #2f2a4a; }
 
-.lbmc-opt.richtig { border-color: #2fb36d; background: rgba(47, 179, 109, .14); }
-.lbmc-opt.verpasst { border-color: #2fb36d; border-style: dashed; }
-.lbmc-opt.falsch { border-color: #e0525e; background: rgba(224, 82, 94, .12); }
+.lbmc-opt.richtig, .nightMode .lbmc-opt.richtig { border-color: #2fb36d; background-color: #e3f6ec; }
+.nightMode .lbmc-opt.richtig { background-color: #1f3a2d; }
+.lbmc-opt.verpasst, .nightMode .lbmc-opt.verpasst { border-color: #2fb36d; border-style: dashed; }
+.lbmc-opt.falsch, .nightMode .lbmc-opt.falsch { border-color: #e0525e; background-color: #fbe6e8; }
+.nightMode .lbmc-opt.falsch { background-color: #3d2328; }
 
 .lbmc-ergebnis { font-weight: 700; margin: 4px 0 14px; }
 .lbmc-ergebnis.gut { color: #2fb36d; }
