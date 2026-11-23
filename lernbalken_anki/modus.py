@@ -80,6 +80,22 @@ def schalter_html(eigen: bool) -> str:
   color: var(--fg-subtle); cursor: pointer; }}
 #lb-modus button:hover {{ color: var(--fg); }}
 #lb-modus button.an, #lb-modus button.an:hover {{ background: var(--button-primary-bg); color: #fff; }}
-</style><span id="lb-modus" title="Eigene feste Zeiten oder Ankis Planung">
+</style><script>
+// Rechts (Schalter + More) ist breiter als links (Edit). Beide Spalten gleich breit, dann sitzen die
+// Antwortknoepfe in der Mitte des Fensters.
+(function () {{
+  function mitte() {{
+    var t = document.querySelectorAll('#innertable > tbody > tr > td.stat');
+    if (t.length < 2) return;
+    // erst auf den Inhalt schrumpfen, dann beide auf die breitere Seite setzen
+    t[0].style.whiteSpace = t[1].style.whiteSpace = 'nowrap';
+    t[0].style.width = t[1].style.width = '1px';
+    var w = Math.max(t[0].offsetWidth, t[1].offsetWidth);
+    t[0].style.width = t[1].style.width = w + 'px';
+  }}
+  window.addEventListener('resize', mitte);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mitte); else setTimeout(mitte, 0);
+}})();
+</script><span id="lb-modus" title="Eigene feste Zeiten oder Ankis Planung">
 <button class="{an_a}" onclick="pycmd('lb_modus:anki');">Anki</button>
 <button class="{an_e}" onclick="pycmd('lb_modus:eigen');">Eigene</button></span>"""
