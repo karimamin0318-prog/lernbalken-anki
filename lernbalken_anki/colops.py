@@ -7,12 +7,10 @@ import re
 
 from anki.utils import ids2str
 
-from .core import block_pfad, deck_plan, fortschritt
+from .core import deck_plan, fortschritt
 
 MC_NAME = "Lernbalken MC"
-MC_FELDER = ["Frage", "A", "B", "C", "D", "E", "F", "Richtig", "Erklärung", "Quelle", "ID"]
 KARTE_NAME = "Lernbalken Karte"
-KARTE_FELDER = ["Frage", "Antwort", "Quelle", "ID"]
 _HIER = os.path.dirname(__file__)
 
 
@@ -124,13 +122,12 @@ def balken_daten(col, did) -> dict | None:
 
 # Kartentypen
 ##########################################################################
-# Die apkg aus dem lernprojekt-Skill bringt beide Kartentypen mit festen Ids mit. Das Add-on legt einen
-# Kartentyp nur an, wenn er fehlt und gebraucht wird (Import aus der Zwischenablage), und haelt sonst
-# Vorlagen und Design der vorhandenen auf dem Stand dieses Ordners.
+# Die apkg aus dem lernprojekt-Skill bringt beide Kartentypen mit festen Ids mit. Das Add-on legt keine an
+# (es kann keine festen Ids vergeben), sondern haelt Vorlagen und Design der vorhandenen auf dem Stand dieses Ordners.
 
 KARTENTYPEN = {
-    MC_NAME: {"felder": MC_FELDER, "vorne": "vorne.html", "hinten": "hinten.html"},
-    KARTE_NAME: {"felder": KARTE_FELDER, "vorne": "karte_vorne.html", "hinten": "karte_hinten.html"},
+    MC_NAME: {"vorne": "vorne.html", "hinten": "hinten.html"},
+    KARTE_NAME: {"vorne": "karte_vorne.html", "hinten": "karte_hinten.html"},
 }
 
 
@@ -139,24 +136,14 @@ def _lies(datei: str) -> str:
         return f.read()
 
 
-def kartentyp(col, name: str, erzeugen: bool = False):
-    """Den Kartentyp (aktuell gehalten) oder None, wenn es ihn nicht gibt und erzeugen False ist."""
+def kartentyp(col, name: str):
+    """Den Kartentyp (aktuell gehalten) oder None, wenn es ihn (noch) nicht gibt."""
     mm = col.models
     art = KARTENTYPEN[name]
     vorne, hinten, css = _lies(art["vorne"]), _lies(art["hinten"]), _lies("stil.css")
     m = mm.by_name(name)
     if not m:
-        if not erzeugen:
-            return None
-        m = mm.new(name)
-        for feld in art["felder"]:
-            mm.add_field(m, mm.new_field(feld))
-        t = mm.new_template("Karte")
-        t["qfmt"], t["afmt"] = vorne, hinten
-        mm.add_template(m, t)
-        m["css"] = css
-        mm.add(m)
-        return mm.by_name(name)
+        return None
     t = m["tmpls"][0]
     if t["qfmt"] != vorne or t["afmt"] != hinten or m["css"] != css:
         t["qfmt"], t["afmt"], m["css"] = vorne, hinten, css
@@ -167,39 +154,3 @@ def kartentyp(col, name: str, erzeugen: bool = False):
 def kartentypen_auffrischen(col) -> list[str]:
     """Bringt die vorhandenen Kartentypen auf den Stand. Gibt die Namen der vorhandenen zurueck."""
     return [n for n in KARTENTYPEN if kartentyp(col, n) is not None]
-
-
-# Karten aus dem Anki-Eingang
-##########################################################################
-
-
-def importiere(col, abschnitte: list[dict]) -> list[dict]:
-    """Legt die Fragen als Karten im passenden Deck an. Fragen, die es schon gibt (gleiche ID), werden
-    uebersprungen. Gibt pro Abschnitt zurueck: deck, neu, doppelt, kaputt."""
-    m = kartentyp(col, MC_NAME, erzeugen=True)
-    id_pos = [f["name"] for f in m["flds"]].index("ID")
-    vorhanden = {
-        flds.split("")[id_pos]
-        for (flds,) in col.db.all("select flds from notes where mid = ?", m["id"])
-        if len(flds.split("")) > id_pos
-    }
-    ergebnis = []
-    for a in abschnitte:
-        pfad, nr = block_pfad(a["fach"], a["block"])
-        did, _ = deck_fuer(col, pfad, nr)
-        tag_block = "::".join(p.split(" ", 1)[0] if i else p for i, p in enumerate(pfad)).replace(" ", "_")
-        neu = doppelt = 0
-        for f in a["fragen"]:
-            if f["ID"] in vorhanden:
-                doppelt += 1
-                continue
-            note = col.new_note(m)
-            for feld, wert in f.items():
-                if feld in note:
-                    note[feld] = wert
-            note.tags = ["Lernbalken", tag_block]
-            col.add_note(note, did)
-            vorhanden.add(f["ID"])
-            neu += 1
-        ergebnis.append({"deck": pfad[-1], "neu": neu, "doppelt": doppelt, "kaputt": a["kaputt"]})
-    return ergebnis

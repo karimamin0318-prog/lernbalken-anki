@@ -1,7 +1,6 @@
 """Lernbalken fuer Anki.
 
 - Legt Decks aus der Lernbalken-Datei an: Fach > Lehrbrief (LB1, LB2 ...) > Block.
-- Holt Fragen aus dem Anki-Eingang (vom Lernbalken aus der Zwischenablage abgelegt) und sortiert sie ein.
 - Bringt den Kartentyp "Lernbalken MC" fuer Single- und Multiple-Choice mit.
 - Zeigt beim Lernen oben einen Fortschrittsbalken, der bei jeder richtigen Antwort
   weiterlaedt, glitzert, +1 zeigt und kurz klingelt. Bei falschen Antworten passiert nichts.
@@ -22,7 +21,6 @@ from aqt.deckbrowser import DeckBrowser
 from aqt.overview import Overview
 from aqt.qt import QTimer, QWebEngineSettings
 from aqt.reviewer import Reviewer, ReviewerBottomBar
-from aqt.utils import tooltip
 
 from . import colops, core, deckliste, modus, wichtig
 
@@ -79,57 +77,6 @@ def _decks_pruefen(erzwingen: bool = False) -> None:
             mw.deckBrowser.refresh()
 
 
-# Fragen aus dem Anki-Eingang
-##########################################################################
-
-
-def _eingang_pruefen() -> None:
-    if not mw.col:
-        return
-    ordner = os.path.join(os.path.dirname(_datei()), "anki-eingang")
-    try:
-        dateien = sorted(f for f in os.listdir(ordner) if f.endswith(".txt"))
-    except OSError:
-        return
-    meldungen = []
-    for name in dateien:
-        pfad = os.path.join(ordner, name)
-        ziel = "importiert"
-        try:
-            with open(pfad, encoding="utf-8") as f:
-                abschnitte = core.lies_anki(f.read())
-            ergebnis = colops.importiere(mw.col, abschnitte)
-            if not any(e["neu"] or e["doppelt"] for e in ergebnis):
-                ziel = "fehler"
-            for e in ergebnis:
-                teile = [f"{e['neu']} neu"]
-                if e["doppelt"]:
-                    teile.append(f"{e['doppelt']} schon da")
-                if e["kaputt"]:
-                    teile.append(f"{e['kaputt']} unlesbar")
-                meldungen.append(f"<b>{html.escape(e['deck'])}</b>: " + ", ".join(teile))
-        except Exception:
-            traceback.print_exc()
-            ziel = "fehler"
-        # Die Datei bleibt als Sicherung liegen, aber nicht mehr im Eingang
-        try:
-            os.makedirs(os.path.join(ordner, ziel), exist_ok=True)
-            os.replace(pfad, os.path.join(ordner, ziel, name))
-        except OSError:
-            traceback.print_exc()
-    if meldungen:
-        tooltip("Lernbalken → Anki<br>" + "<br>".join(meldungen), period=6000)
-        if mw.state == "deckBrowser":
-            mw.deckBrowser.refresh()
-        elif mw.state == "overview":
-            mw.overview.refresh()
-
-
-def _pruefen() -> None:
-    _decks_pruefen()
-    _eingang_pruefen()
-
-
 def _profil_offen() -> None:
     global _timer
     try:
@@ -137,14 +84,12 @@ def _profil_offen() -> None:
     except Exception:
         traceback.print_exc()
     _decks_pruefen(erzwingen=True)
-    _eingang_pruefen()
     try:
         for fach in wichtig.faecher_mit_markierten(mw.col):
             wichtig.deck_id(mw.col, fach, erzeugen=True)
         wichtig.leeren_alle(mw.col)
     except Exception:
         traceback.print_exc()
-    # Ton im Lernfenster ohne vorherigen Mausklick erlauben
     cfg = _config()
     if not cfg.get("tageswechsel_erledigt"):
         try:
@@ -154,12 +99,13 @@ def _profil_offen() -> None:
             mw.addonManager.writeConfig(__name__, cfg)
         except Exception:
             traceback.print_exc()
+    # Ton im Lernfenster ohne vorherigen Mausklick erlauben
     mw.web.settings().setAttribute(
         QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False
     )
     if _timer is None:
         _timer = QTimer(mw)
-        _timer.timeout.connect(_pruefen)
+        _timer.timeout.connect(_decks_pruefen)
     _timer.start(2000)
 
 
@@ -198,12 +144,23 @@ def _web_inhalt(web_content, context) -> None:
 def _status(neu: str, alt: str) -> None:
     if neu == "review":
         _zustand["frisch"] = True
-    if neu == "deckBrowser" and mw.col:
-        # Markierte Karten zurueck in ihre Blocks, Anki zeichnet die Liste gleich danach
-        try:
+
+
+def _vor_status(neu: str, alt: str) -> None:
+    """Laeuft, bevor Anki den neuen Bildschirm zeichnet, damit die Zahlen gleich stimmen."""
+    if not mw.col:
+        return
+    try:
+        if neu == "overview":
+            # Wichtig-Deck: beim Oeffnen (egal auf welchem Weg) die markierten Karten einsammeln
+            aktuell = mw.col.decks.get_current_id()
+            if any(aktuell == w for w, _ in wichtig.alle(mw.col)):
+                wichtig.fuellen(mw.col, aktuell)
+        elif neu == "deckBrowser":
+            # Markierte Karten zurueck in ihre Blocks
             wichtig.leeren_alle(mw.col)
-        except Exception:
-            traceback.print_exc()
+    except Exception:
+        traceback.print_exc()
 
 
 # Stern im Balken: zeigt und schaltet Ankis Markierung (auch die Taste * aktualisiert ihn)
@@ -380,15 +337,6 @@ def _js_nachricht(handled, message: str, context):
     if isinstance(context, Reviewer) and message == "lb_wichtig":
         mw.reviewer.toggle_mark_on_current_note()
         return (True, None)
-    if isinstance(context, DeckBrowser) and message.startswith("open:"):
-        # Wichtig-Deck: beim Oeffnen die markierten Karten einsammeln, dann oeffnet Anki es wie gewohnt
-        try:
-            did = int(message.split(":", 1)[1])
-            if any(did == w for w, _ in wichtig.alle(mw.col)):
-                wichtig.fuellen(mw.col, did)
-        except Exception:
-            traceback.print_exc()
-        return handled
     if not isinstance(context, DeckBrowser) or not message.startswith("lb_"):
         return handled
     try:
@@ -406,6 +354,7 @@ gui_hooks.profile_did_open.append(_profil_offen)
 gui_hooks.profile_will_close.append(_profil_zu)
 gui_hooks.webview_will_set_content.append(_web_inhalt)
 gui_hooks.state_did_change.append(_status)
+gui_hooks.state_will_change.append(_vor_status)
 gui_hooks.reviewer_did_show_question.append(_frage_gezeigt)
 gui_hooks.reviewer_did_answer_card.append(_beantwortet)
 gui_hooks.overview_will_render_content.append(_uebersicht)

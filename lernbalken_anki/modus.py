@@ -28,9 +28,15 @@ TAGE = {"1d": "1!", "3d": "3!", "fertig": "3650!"}
 
 
 def plane(col, card, wahl: str) -> None:
-    """Legt die gerade beantwortete Karte auf die gewaehlte Zeit."""
+    """Legt die gerade beantwortete Karte auf die gewaehlte Zeit.
+    Ankis Antwort und das Verschieben werden ein Rueckgaengig-Schritt (Taste u nimmt beides zurueck)."""
+    schritt = col.undo_status().last_step
     if wahl in SEKUNDEN:
         card.load()
+        # Liegt sie in einem Filterdeck (z. B. Wichtig), erst nach Hause holen. Sonst setzt Anki beim
+        # Leeren des Filterdecks den alten Stand wieder ein und die gewaehlte Zeit ist weg.
+        if card.odid:
+            card.did, card.odid, card.odue = card.odid, 0, 0
         # Lernkarte mit genauer Uhrzeit. War sie schon gelernt, wird sie zur Wieder-Lernkarte.
         card.type = 3 if card.type in (2, 3) else 1
         card.queue = 1
@@ -39,6 +45,10 @@ def plane(col, card, wahl: str) -> None:
         col.update_card(card)
     elif wahl in TAGE:
         col.sched.set_due_date([card.id], TAGE[wahl])
+    else:
+        return
+    if schritt:
+        col.merge_undo_entries(schritt)
 
 
 def tageswechsel_mitternacht(col) -> bool:

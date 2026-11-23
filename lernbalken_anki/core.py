@@ -8,8 +8,9 @@ import re
 
 STANDARD_DATEI = os.path.join(os.path.expanduser("~"), "Lernbalken", "lernbalken.json")
 
-# "LB1 B2 Gelenke & Knie" -> Teil "LB1", Block "B2 Gelenke & Knie"
-_MIT_TEIL = re.compile(r"^\s*([^\W\d_]+\d+)\s+([Bb]\d+)\b\s*(.*)$")
+# "LB1 B2 Gelenke & Knie" -> Teil "LB1", Block "B2 Gelenke & Knie". Kuerzel wie "VO3+4" gehen auch,
+# genau wie im Lernbalken (KUERZEL in src/eingang.ts) und in baue_deck.py des Skills.
+_MIT_TEIL = re.compile(r"^\s*(\S+)\s+([Bb]\d+)\b\s*(.*)$")
 # "B2 Gelenke & Knie" (ohne Teil-Kuerzel)
 _NUR_BLOCK = re.compile(r"^\s*([Bb]\d+)\b\s*(.*)$")
 
@@ -78,100 +79,6 @@ def fortschritt(karten: list[tuple[int, int, int]]) -> tuple[float, int]:
     if not werte:
         return 0.0, 0
     return 100 * sum(werte) / len(werte), len(werte)
-
-
-# Anki-Karten aus dem lernprojekt-Skill
-##########################################################################
-#
-# ANKI | B-Lizenz | LB1 B2 Gelenke & Knie
-# Frage: Welche Gelenke sind Kugelgelenke?
-# A) Schultergelenk
-# B) Kniegelenk
-# C) Hueftgelenk
-# Richtig: A, C
-# Erklaerung: ... (S. 12)
-
-_RAND = re.compile(r"^[\s`*>]+|[\s`*]+$")
-_KOPF = re.compile(r"^(?:ANKI|BLOECKE|BLÖCKE|LERNSTAND)\s*\|", re.I)
-_FELD = re.compile(r"^(?:(Frage)\s*:|([A-F])\s*[).:]|(Richtig)\s*:|(Erkl(?:ä|ae)rung)\s*:)\s*(.*)$", re.I)
-_PLATZHALTER = re.compile(r"<[^>]*>")
-
-
-def _html(text: str) -> str:
-    import html
-
-    t = html.escape(text.strip(), quote=False)
-    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
-
-
-def karten_id(fach: str, block: str, frage: str) -> str:
-    import hashlib
-
-    m = _MIT_TEIL.match(block) or None
-    kenn = f"{m.group(1)} {m.group(2)}".lower() if m else re.sub(r"\s+", " ", block).strip().lower()
-    roh = "|".join([re.sub(r"\s+", " ", fach).strip().lower(), kenn, re.sub(r"\s+", " ", frage).strip().lower()])
-    return hashlib.sha1(roh.encode("utf-8")).hexdigest()[:16]
-
-
-def lies_anki(text: str) -> list[dict]:
-    """Zerlegt den kopierten Text in Abschnitte: {fach, block, fragen: [...], kaputt: int}."""
-    abschnitte: list[dict] = []
-    akt = None
-    frage = None
-    feld = None
-
-    def abschliessen():
-        nonlocal frage
-        if akt is None or frage is None:
-            frage = None
-            return
-        richtig = sorted(set(re.findall(r"[A-F]", (frage.get("Richtig") or "").upper())))
-        optionen = [k for k in "ABCDEF" if frage.get(k, "").strip()]
-        if frage.get("Frage", "").strip() and len(optionen) >= 2 and richtig and set(richtig) <= set(optionen):
-            frage["Richtig"] = ", ".join(richtig)
-            akt["fragen"].append(frage)
-        else:
-            akt["kaputt"] += 1
-        frage = None
-
-    for roh in text.splitlines():
-        zeile = _RAND.sub("", roh)
-        if not zeile or zeile.startswith("```") or zeile == "---":
-            feld = None if zeile == "---" else feld
-            continue
-        if _KOPF.match(zeile):
-            abschliessen()
-            teile = [t.strip() for t in zeile.split("|")]
-            if teile[0].upper() == "ANKI" and len(teile) >= 3 and teile[1] and teile[2] and not any(_PLATZHALTER.search(t) for t in teile):
-                akt = {"fach": teile[1], "block": "|".join(teile[2:]).strip(), "fragen": [], "kaputt": 0}
-                abschnitte.append(akt)
-            else:
-                akt = None
-            feld = None
-            continue
-        if akt is None:
-            continue
-        m = _FELD.match(zeile)
-        if m:
-            wert = m.group(5)
-            if m.group(1):
-                abschliessen()
-                frage, feld = {"Frage": wert}, "Frage"
-            elif frage is not None:
-                feld = m.group(2).upper() if m.group(2) else ("Richtig" if m.group(3) else "Erklärung")
-                frage[feld] = wert
-            continue
-        if frage is not None and feld:
-            frage[feld] = (frage.get(feld, "") + "\n" + zeile).strip()
-    abschliessen()
-
-    for a in abschnitte:
-        for f in a["fragen"]:
-            f["ID"] = karten_id(a["fach"], a["block"], f["Frage"])
-            for k in list(f):
-                if k not in ("ID", "Richtig"):
-                    f[k] = _html(f[k]).replace("\n", "<br>")
-    return [a for a in abschnitte if a["fragen"] or a["kaputt"]]
 
 
 # Deckliste: eigene Reihenfolge und ausgeblendete Decks
