@@ -3,3 +3,7 @@
 **lautstaerke**: 0 bis 1.
 
 **lernbalken_datei**: Pfad zur Lernbalken-Datei. Leer lassen für den Standard `C:\Users\<Name>\Lernbalken\lernbalken.json`.
+
+**modus**: `"eigen"` = eigene Zeiten (5 Min, 30 Min, 3 Std, Morgen, 3 Tage, Fertig), `"anki"` = Ankis Planung. Lässt sich auch beim Lernen mit dem Schalter neben „More“ umstellen.
+
+**tageswechsel_erledigt**: wird vom Add-on gesetzt, nachdem es den Tageswechsel einmal auf 0 Uhr gestellt hat. Danach kannst du ihn in Ankis Einstellungen wieder frei ändern.
