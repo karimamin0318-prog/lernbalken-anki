@@ -1,0 +1,51 @@
+<div class="lbmc" data-seite="vorne" data-richtig="{{text:Richtig}}" data-id="{{text:ID}}">
+  <div class="lbmc-frage">{{Frage}}</div>
+  <div class="lbmc-hinweis"></div>
+  <div class="lbmc-optionen">
+    {{#A}}<button type="button" class="lbmc-opt" data-k="A">{{A}}</button>{{/A}}
+    {{#B}}<button type="button" class="lbmc-opt" data-k="B">{{B}}</button>{{/B}}
+    {{#C}}<button type="button" class="lbmc-opt" data-k="C">{{C}}</button>{{/C}}
+    {{#D}}<button type="button" class="lbmc-opt" data-k="D">{{D}}</button>{{/D}}
+    {{#E}}<button type="button" class="lbmc-opt" data-k="E">{{E}}</button>{{/E}}
+    {{#F}}<button type="button" class="lbmc-opt" data-k="F">{{F}}</button>{{/F}}
+  </div>
+</div>
+<script>
+(function () {
+  var box = document.querySelector('.lbmc[data-seite="vorne"]');
+  if (!box) return;
+  var richtig = (box.dataset.richtig || '').toUpperCase().match(/[A-F]/g) || [];
+  var mehrere = richtig.length > 1;
+  var liste = box.querySelector('.lbmc-optionen');
+  var opts = Array.prototype.slice.call(liste.children);
+  // Reihenfolge mischen, damit man sich nicht die Position merkt
+  for (var i = opts.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+  }
+  opts.forEach(function (o) { liste.appendChild(o); });
+  box.querySelector('.lbmc-hinweis').textContent = mehrere
+    ? richtig.length + ' Antworten sind richtig'
+    : 'Eine Antwort ist richtig';
+  var zustand = { id: box.dataset.id + '|' + box.querySelector('.lbmc-frage').textContent,
+                  reihe: opts.map(function (o) { return o.dataset.k; }), wahl: [] };
+  function merken() {
+    window.__lbmc = zustand;
+    try { sessionStorage.setItem('lbmc', JSON.stringify(zustand)); } catch (e) {}
+  }
+  opts.forEach(function (o) {
+    o.addEventListener('click', function () {
+      var k = o.dataset.k;
+      if (mehrere) {
+        var p = zustand.wahl.indexOf(k);
+        if (p >= 0) zustand.wahl.splice(p, 1); else zustand.wahl.push(k);
+      } else {
+        zustand.wahl = zustand.wahl[0] === k ? [] : [k];
+      }
+      opts.forEach(function (x) { x.classList.toggle('gewaehlt', zustand.wahl.indexOf(x.dataset.k) >= 0); });
+      merken();
+    });
+  });
+  merken();
+})();
+</script>

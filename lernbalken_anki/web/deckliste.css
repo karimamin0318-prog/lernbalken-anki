@@ -1,0 +1,35 @@
+/* Auge neben dem Zahnrad: wie das Zahnrad nur in der Zeile unter der Maus und beim aktuellen Deck */
+td.opts { white-space: nowrap; }
+.lb-auge {
+  display: inline-flex; vertical-align: middle; margin-inline-end: 6px;
+  color: var(--fg-subtle); cursor: pointer; visibility: hidden;
+}
+.lb-auge:hover { color: var(--fg); }
+.current .lb-auge, tr:hover:not(.top-level-drag-row) .lb-auge { visibility: visible; }
+
+/* Das mitgezogene Abbild darf die Zeile darunter nicht verdecken */
+.ui-draggable-dragging { pointer-events: none; }
+
+/* Wo das Deck landet */
+tr.deck.lb-davor td { box-shadow: inset 0 2px 0 var(--border-focus); }
+tr.deck.lb-danach td { box-shadow: inset 0 -2px 0 var(--border-focus); }
+
+/* Ausgeblendete Decks unter der Liste */
+.lb-aus { margin: 1.5em auto 0; max-width: 640px; text-align: center; }
+.lb-aus summary {
+  cursor: pointer; color: var(--fg-subtle); font-size: .9em;
+  list-style: none; display: inline-flex; align-items: center; gap: .4em;
+  padding: .3em .7em; border-radius: var(--border-radius-large);
+}
+.lb-aus summary::-webkit-details-marker { display: none; }
+.lb-aus summary::before { content: "▸"; transition: transform var(--transition); }
+.lb-aus[open] summary::before { transform: rotate(90deg); }
+.lb-aus summary:hover { color: var(--fg); background: var(--border-subtle); }
+.lb-aus-liste { display: flex; flex-wrap: wrap; justify-content: center; gap: .5em; padding: .8em .2em; }
+.lb-aus-deck {
+  display: inline-flex; align-items: center; gap: .45em;
+  font: inherit; font-size: .9em; color: var(--fg-subtle);
+  background: var(--canvas-elevated); border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-large); padding: .35em .8em; cursor: pointer;
+}
+.lb-aus-deck:hover { color: var(--fg); border-color: var(--border-focus); }

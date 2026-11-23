@@ -1,0 +1,111 @@
+#lb-balken {
+  --lb-text: #1d1b26;
+  --lb-leise: rgba(29, 27, 38, .58);
+  --lb-spur: rgba(110, 100, 150, .16);
+  --lb-grund: rgba(247, 246, 251, .86);
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  padding: 10px 0 8px;
+  background: var(--lb-grund);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--lb-text);
+  pointer-events: none;
+  user-select: none;
+}
+.nightMode #lb-balken, #lb-balken.nacht {
+  --lb-text: #ecebf3;
+  --lb-leise: rgba(236, 235, 243, .55);
+  --lb-spur: rgba(200, 190, 255, .12);
+  --lb-grund: rgba(27, 26, 34, .84);
+}
+#lb-balken[hidden] { display: none; }
+html.lb-an #qa { margin-top: 90px; }
+
+.lb-innen { position: relative; width: min(620px, calc(100% - 40px)); margin: 0 auto; }
+
+.lb-kopf, .lb-fuss {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  white-space: nowrap;
+}
+.lb-kopf { font-size: 13px; margin-bottom: 6px; }
+.lb-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.lb-pfad { color: var(--lb-leise); font-weight: 400; }
+.lb-pct { font-weight: 700; font-variant-numeric: tabular-nums; }
+.lb-fuss { font-size: 11.5px; color: var(--lb-leise); margin-top: 5px; font-variant-numeric: tabular-nums; }
+.lb-heute { display: inline-block; transform-origin: right center; }
+
+.lb-spur {
+  position: relative; height: 10px; border-radius: 99px;
+  background: var(--lb-spur);
+}
+.lb-fuell {
+  position: absolute; inset: 0 auto 0 0; width: 0%;
+  border-radius: inherit; overflow: hidden;
+  background: linear-gradient(90deg, #6d5cff 0%, #b04dff 55%, #ff6fb5 85%, #ffc65c 100%);
+  background-size: 620px 100%;
+  box-shadow: 0 0 10px rgba(176, 77, 255, .35);
+  transition: width .95s cubic-bezier(.22, 1.2, .36, 1);
+}
+.lb-fuell.ohne { transition: none; }
+.lb-glanz {
+  position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
+  opacity: 0;
+}
+.lb-glanz.los { animation: lb-glanz .9s ease-out; }
+@keyframes lb-glanz {
+  0% { left: -40%; opacity: 1; }
+  100% { left: 110%; opacity: 0; }
+}
+
+.lb-spitze {
+  position: absolute; top: 50%; left: 0%; width: 14px; height: 14px;
+  margin: -7px 0 0 -7px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(255, 214, 120, .9) 35%, rgba(255, 111, 181, 0) 70%);
+  opacity: 0;
+  transition: left .95s cubic-bezier(.22, 1.2, .36, 1);
+}
+.lb-spitze.ohne { transition: none; }
+.lb-spitze.leuchtet { animation: lb-leuchten 1.1s ease-out; }
+@keyframes lb-leuchten {
+  0% { opacity: 0; transform: scale(.6); }
+  15% { opacity: 1; transform: scale(2.2); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.lb-funke {
+  position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  pointer-events: none;
+}
+.lb-plus {
+  position: absolute; font-weight: 800; font-size: 17px; white-space: nowrap;
+  background: linear-gradient(90deg, #b04dff, #ff6fb5, #ffb13b);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 1px 4px rgba(255, 111, 181, .45));
+  transform: translate(-50%, 0);
+  pointer-events: none;
+}
+.lb-plus.serie { font-size: 20px; }
+
+/* In der Deck-Uebersicht: steht im Fluss statt oben fest */
+#lb-balken.statisch {
+  position: relative; background: none; padding: 18px 0 6px;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+#lb-balken.statisch .lb-innen { width: min(420px, 100%); text-align: left; }
+
+/* Stern: markiert die Frage als wichtig (Ankis eigene Markierung) */
+.lb-rechts { display: inline-flex; align-items: baseline; gap: 12px; }
+.lb-stern {
+  pointer-events: auto; cursor: pointer; align-self: center;
+  display: inline-flex; align-items: center; gap: 5px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--lb-leise);
+  background: transparent; border: 1px solid var(--lb-spur); border-radius: 99px;
+  padding: 2px 9px 2px 7px;
+}
+.lb-stern svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.lb-stern:hover { color: var(--lb-text); border-color: currentColor; }
+.lb-stern.an { color: #e6a700; border-color: rgba(230, 167, 0, .5); background: rgba(255, 200, 60, .12); }
+.lb-stern.an svg { fill: currentColor; }
+.nightMode #lb-balken .lb-stern.an, #lb-balken.nacht .lb-stern.an { color: #ffc94d; }

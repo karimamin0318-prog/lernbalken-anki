@@ -1,0 +1,45 @@
+<div class="lbmc" data-seite="hinten" data-richtig="{{text:Richtig}}" data-id="{{text:ID}}">
+  <div class="lbmc-frage">{{Frage}}</div>
+  <div class="lbmc-ergebnis"></div>
+  <div class="lbmc-optionen">
+    {{#A}}<div class="lbmc-opt" data-k="A">{{A}}</div>{{/A}}
+    {{#B}}<div class="lbmc-opt" data-k="B">{{B}}</div>{{/B}}
+    {{#C}}<div class="lbmc-opt" data-k="C">{{C}}</div>{{/C}}
+    {{#D}}<div class="lbmc-opt" data-k="D">{{D}}</div>{{/D}}
+    {{#E}}<div class="lbmc-opt" data-k="E">{{E}}</div>{{/E}}
+    {{#F}}<div class="lbmc-opt" data-k="F">{{F}}</div>{{/F}}
+  </div>
+  {{#Erklärung}}<div class="lbmc-erklaerung">{{Erklärung}}</div>{{/Erklärung}}
+  {{#Quelle}}<div class="lb-quelle">{{Quelle}}</div>{{/Quelle}}
+</div>
+<script>
+(function () {
+  var box = document.querySelector('.lbmc[data-seite="hinten"]');
+  if (!box) return;
+  var richtig = (box.dataset.richtig || '').toUpperCase().match(/[A-F]/g) || [];
+  var id = box.dataset.id + '|' + box.querySelector('.lbmc-frage').textContent;
+  var zustand = window.__lbmc;
+  if (!zustand) { try { zustand = JSON.parse(sessionStorage.getItem('lbmc')); } catch (e) {} }
+  if (!zustand || zustand.id !== id) zustand = null;
+  var liste = box.querySelector('.lbmc-optionen');
+  var opts = Array.prototype.slice.call(liste.children);
+  if (zustand) {
+    zustand.reihe.forEach(function (k) {
+      var o = liste.querySelector('[data-k="' + k + '"]');
+      if (o) liste.appendChild(o);
+    });
+  }
+  var wahl = zustand ? zustand.wahl : [];
+  opts.forEach(function (o) {
+    var k = o.dataset.k, istRichtig = richtig.indexOf(k) >= 0, gewaehlt = wahl.indexOf(k) >= 0;
+    if (istRichtig) o.classList.add(gewaehlt || !zustand ? 'richtig' : 'verpasst');
+    else if (gewaehlt) o.classList.add('falsch');
+  });
+  var erg = box.querySelector('.lbmc-ergebnis');
+  if (!zustand) { erg.textContent = ''; return; }
+  var treffer = wahl.length === richtig.length && wahl.every(function (k) { return richtig.indexOf(k) >= 0; });
+  if (!wahl.length) { erg.textContent = 'Nichts angeklickt'; erg.className += ' leer'; }
+  else if (treffer) { erg.textContent = 'Richtig'; erg.className += ' gut'; }
+  else { erg.textContent = 'Nicht ganz'; erg.className += ' daneben'; }
+})();
+</script>

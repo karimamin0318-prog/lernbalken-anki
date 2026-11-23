@@ -1,0 +1,55 @@
+.card {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 19px;
+  line-height: 1.45;
+  color: #1d1b26;
+  background: #f7f6fb;
+  text-align: left;
+}
+.card.nightMode { color: #ecebf3; background: #1b1a22; }
+
+.lbmc { max-width: 640px; margin: 0 auto; padding: 8px 4px 24px; }
+.lbmc-frage { font-size: 1.15em; font-weight: 600; margin-bottom: 6px; }
+.lbmc-hinweis { font-size: .78em; opacity: .6; margin-bottom: 14px; }
+
+.lbmc-optionen { display: flex; flex-direction: column; gap: 10px; }
+.lbmc-opt {
+  display: block; width: 100%; box-sizing: border-box;
+  text-align: left; font: inherit; color: inherit;
+  padding: 12px 16px; border-radius: 12px;
+  border: 2px solid rgba(120, 110, 160, .28);
+  background: rgba(255, 255, 255, .7);
+}
+.nightMode .lbmc-opt { background: rgba(255, 255, 255, .05); border-color: rgba(200, 190, 255, .2); }
+button.lbmc-opt { cursor: pointer; transition: border-color .12s, background .12s, transform .08s; }
+button.lbmc-opt:hover { border-color: rgba(124, 92, 255, .6); }
+button.lbmc-opt:active { transform: scale(.99); }
+.lbmc-opt.gewaehlt { border-color: #7c5cff; background: rgba(124, 92, 255, .12); }
+
+.lbmc-opt.richtig { border-color: #2fb36d; background: rgba(47, 179, 109, .14); }
+.lbmc-opt.verpasst { border-color: #2fb36d; border-style: dashed; }
+.lbmc-opt.falsch { border-color: #e0525e; background: rgba(224, 82, 94, .12); }
+
+.lbmc-ergebnis { font-weight: 700; margin: 4px 0 14px; }
+.lbmc-ergebnis.gut { color: #2fb36d; }
+.lbmc-ergebnis.daneben { color: #e0525e; }
+.lbmc-ergebnis.leer { opacity: .6; font-weight: 500; }
+
+.lbmc-erklaerung {
+  margin-top: 18px; padding: 12px 16px; border-radius: 12px;
+  background: rgba(124, 92, 255, .08); font-size: .9em;
+}
+
+.lb-quelle { margin-top: 16px; font-size: .75em; opacity: .55; }
+
+/* Flashcards: fett geschriebene Stichwoerter leuchten gruen, damit sie mit einem Blick ins Auge fallen */
+.lbk { max-width: 640px; margin: 0 auto; padding: 8px 4px 24px; }
+.lbk-frage { font-size: 1.15em; font-weight: 600; }
+.lbk-linie { border: 0; border-top: 1px solid rgba(120, 110, 160, .3); margin: 18px 0; }
+.lbk-antwort ul, .lbk-antwort ol { margin: 6px 0; padding-left: 1.3em; }
+.lbk-antwort li { margin: 4px 0; }
+.lbk-antwort b, .lbk-antwort strong {
+  color: #1f9d55; font-weight: 700;
+  background: rgba(47, 179, 109, .12); padding: 0 .2em; border-radius: 4px;
+}
+.nightMode .lbk-antwort b, .nightMode .lbk-antwort strong { color: #4ade80; background: rgba(74, 222, 128, .12); }
