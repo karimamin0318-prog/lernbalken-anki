@@ -11,12 +11,12 @@ import time
 
 # (Schluessel, Beschriftung, Ease fuer Ankis Antwort)
 ZEITEN = [
-    ("5m", "5 Min", 1),
-    ("30m", "30 Min", 2),
-    ("3h", "3 Std", 3),
-    ("1d", "Morgen", 3),
-    ("3d", "3 Tage", 4),
-    ("fertig", "Fertig", 4),
+    ("5m", "5 min", 1),
+    ("30m", "30 min", 2),
+    ("3h", "3 h", 3),
+    ("1d", "Tomorrow", 3),
+    ("3d", "3 days", 4),
+    ("fertig", "Done", 4),
 ]
 EASE = {k: e for k, _, e in ZEITEN}
 # Antwort ohne Klick auf einen der Knoepfe (z. B. Leertaste): Ankis Ease -> eigene Zeit
@@ -74,7 +74,7 @@ def knoepfe_html() -> str:
     for i, (k, text, _) in enumerate(ZEITEN, 1):
         klasse = ' class="lb-fertig"' if k == "fertig" else ""
         teile.append(
-            f'<td align=center><button{klasse} title="Taste {i}" '
+            f'<td align=center><button{klasse} title="Key {i}" '
             f"onclick='pycmd(\"lb_zeit:{k}\");'>{text}<span class=\"nobold\">{i}</span></button></td>"
         )
     return KNOEPFE_CSS + '<center><table id="lb-zeiten" cellpadding=0 cellspacing=0><tr>' + "".join(teile) + "</tr></table></center>"
@@ -106,6 +106,6 @@ def schalter_html(eigen: bool) -> str:
   window.addEventListener('resize', mitte);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mitte); else setTimeout(mitte, 0);
 }})();
-</script><span id="lb-modus" title="Eigene feste Zeiten oder Ankis Planung">
+</script><span id="lb-modus" title="Custom fixed intervals or Anki scheduling">
 <button class="{an_a}" onclick="pycmd('lb_modus:anki');">Anki</button>
-<button class="{an_e}" onclick="pycmd('lb_modus:eigen');">Eigene</button></span>"""
+<button class="{an_e}" onclick="pycmd('lb_modus:eigen');">Custom</button></span>"""

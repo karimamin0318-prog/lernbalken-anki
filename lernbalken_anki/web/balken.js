@@ -4,7 +4,7 @@
   'use strict';
   if (window.lernbalken) return;
 
-  var el, fuell, glanz, spitze, pctEl, nameEl, pfadEl, fachEl, heuteEl, innen, sternEl;
+  var el, fuell, offenEl, glanz, spitze, pctEl, nameEl, pfadEl, fachEl, heuteEl, innen, sternEl;
   var angezeigt = null;   // aktuell gezeigter Prozentwert
   var deckName = null;
   var serie = 0;
@@ -18,17 +18,28 @@
     el.innerHTML =
       '<div class="lb-innen">' +
         '<div class="lb-kopf"><span class="lb-name"><span class="lb-pfad"></span><span class="lb-titel"></span></span>' +
-        '<span class="lb-rechts"><span class="lb-pct"></span>' +
-        '<button type="button" class="lb-stern" title="Als wichtig markieren (Taste *)" aria-pressed="false">' +
+        '<span class="lb-rechts">' +
+        '<button type="button" class="lb-knopf lb-filter" data-art="neu" aria-pressed="false" ' +
+        'title="Speedrun: only cards you have never seen, no daily limit">' +
+        '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></svg>' +
+        '<span>New only</span></button>' +
+        '<button type="button" class="lb-knopf lb-filter" data-art="mc" aria-pressed="false" ' +
+        'title="Only single and multiple choice questions, no flashcards">' +
+        '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3.5" y="4" width="6" height="6" rx="1.5"/>' +
+        '<rect x="3.5" y="14" width="6" height="6" rx="1.5"/><path d="M13 7h8M13 17h8"/></svg>' +
+        '<span>MC only</span></button><span class="lb-trenner"></span>' +
+        '<button type="button" class="lb-stern" title="Mark as important (key *)" aria-pressed="false">' +
         '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.4 2.85 1-6L3.3 9.6l6-.9z"/></svg>' +
-        '<span>Wichtig</span></button></span></div>' +
-        '<div class="lb-spur"><div class="lb-fuell"><div class="lb-glanz"></div></div><div class="lb-spitze"></div></div>' +
+        '<span>Important</span></button></span></div>' +
+        '<div class="lb-zeile"><div class="lb-spur"><div class="lb-offen"></div><div class="lb-fuell"><div class="lb-glanz"></div></div><div class="lb-spitze"></div></div>' +
+        '<span class="lb-pct"></span></div>' +
         '<div class="lb-fuss"><span class="lb-fach"></span><span class="lb-heute"></span></div>' +
       '</div>';
     document.body.appendChild(el);
     document.documentElement.classList.add('lb-an');
     innen = el.querySelector('.lb-innen');
     fuell = el.querySelector('.lb-fuell');
+    offenEl = el.querySelector('.lb-offen');
     glanz = el.querySelector('.lb-glanz');
     spitze = el.querySelector('.lb-spitze');
     pctEl = el.querySelector('.lb-pct');
@@ -37,6 +48,13 @@
     fachEl = el.querySelector('.lb-fach');
     heuteEl = el.querySelector('.lb-heute');
     sternEl = el.querySelector('.lb-stern');
+    el.querySelectorAll('.lb-filter').forEach(function (k) {
+      k.addEventListener('click', function (e) {
+        e.preventDefault();
+        k.blur();
+        if (window.pycmd) pycmd('lb_filter:' + k.dataset.art);
+      });
+    });
     sternEl.addEventListener('click', function (e) {
       e.preventDefault();
       sternEl.blur();
@@ -49,10 +67,20 @@
     var vorher = sternEl.classList.contains('an');
     sternEl.classList.toggle('an', !!an);
     sternEl.setAttribute('aria-pressed', an ? 'true' : 'false');
-    sternEl.title = an ? 'Markierung entfernen (Taste *)' : 'Als wichtig markieren (Taste *)';
+    sternEl.title = an ? 'Remove mark (key *)' : 'Mark as important (key *)';
     if (an && !vorher && !ruhig) {
       sternEl.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
     }
+  }
+
+  // Schalter "New only" und "MC only": der Zustand kommt aus Python (Config)
+  function filter(f) {
+    bauen();
+    el.querySelectorAll('.lb-filter').forEach(function (k) {
+      var an = !!(f && f[k.dataset.art]);
+      k.classList.toggle('an', an);
+      k.setAttribute('aria-pressed', an ? 'true' : 'false');
+    });
   }
 
   function zahl(p) { return p.toFixed(1).replace('.', ',') + ' %'; }
@@ -60,12 +88,16 @@
   function texte(d) {
     pfadEl.textContent = d.pfad ? d.pfad + ' › ' : '';
     nameEl.textContent = d.name;
-    fachEl.textContent = d.fach != null ? d.fach + ' ' + zahl(d.fachPct) : d.karten + ' Karten';
-    heuteEl.textContent = 'heute ' + d.heute + ' ✓';
+    fachEl.textContent = d.fach != null ? d.fach + ' ' + zahl(d.fachPct) : d.karten + ' cards';
+    heuteEl.textContent = 'today ' + d.heute + ' ✓';
   }
 
-  function breite(p, sanft) {
+  // p = kraeftiges Gruen (fest), offen = helles Gruen dahinter (Karten auf 5 min / 30 min / 3 h)
+  function breite(p, sanft, offen) {
+    offen = offen || 0;
     fuell.classList.toggle('ohne', !sanft);
+    offenEl.classList.toggle('ohne', !sanft);
+    offenEl.style.width = Math.min(100, p + offen) + '%';
     spitze.classList.toggle('ohne', !sanft);
     fuell.style.width = p + '%';
     spitze.style.left = p + '%';
@@ -76,13 +108,14 @@
   function setze(d) {
     bauen();
     if (d.ton) ton = d.ton;
+    if (d.filter) filter(d.filter);
     if (!d.name) { el.hidden = true; return; }
     el.hidden = false;
     if (d.name !== deckName) serie = 0;
     deckName = d.name;
     texte(d);
     angezeigt = d.pct;
-    breite(d.pct, false);
+    breite(d.pct, false, d.offen);
     pctEl.textContent = zahl(d.pct);
   }
 
@@ -136,7 +169,7 @@
     var s = document.createElement('div');
     var meilenstein = serie > 0 && serie % 5 === 0;
     s.className = 'lb-plus' + (meilenstein ? ' serie' : '');
-    s.textContent = meilenstein ? '+1  ·  ' + serie + 'er Serie' : '+1';
+    s.textContent = meilenstein ? '+1  ·  ' + serie + ' streak' : '+1';
     s.style.left = Math.min(Math.max(p.x, 20), innen.offsetWidth - 20) + 'px';
     s.style.top = (p.y + 4) + 'px';
     innen.appendChild(s);
@@ -188,13 +221,14 @@
   function richtig(d) {
     bauen();
     if (d.ton) ton = d.ton;
+    if (d.filter) filter(d.filter);
     if (!d.name) return;
     if (d.name !== deckName || angezeigt == null) { setze(d); }
     serie += 1;
     var von = angezeigt;
     texte(d);
     angezeigt = d.pct;
-    breite(d.pct, d.pct >= von);
+    breite(d.pct, d.pct >= von, d.offen);
     if (d.pct >= von) zaehlen(von, d.pct); else pctEl.textContent = zahl(d.pct);
 
     glanz.classList.remove('los'); void glanz.offsetWidth; glanz.classList.add('los');
@@ -206,8 +240,15 @@
     klingeln();
   }
 
-  // Falsche Antwort: es passiert nichts, nur die Serie endet
-  function falsch() { serie = 0; }
+  // Falsche Antwort (oder 5 min): kein Glitzer, die Serie endet. Die helle Leiste waechst trotzdem leise mit.
+  function falsch(d) {
+    serie = 0;
+    if (!d || !d.name || d.name !== deckName) return;
+    texte(d);
+    angezeigt = d.pct;
+    breite(d.pct, true, d.offen);
+    pctEl.textContent = zahl(d.pct);
+  }
 
-  window.lernbalken = { setze: setze, richtig: richtig, falsch: falsch, stern: stern };
+  window.lernbalken = { setze: setze, richtig: richtig, falsch: falsch, stern: stern, filter: filter };
 })();

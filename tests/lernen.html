@@ -1,0 +1,208 @@
+<!doctype html>
+<!-- Tests fuer die Skripte im Lernfenster und Editor, ohne Anki.
+     Aus dem Ordner lernbalken-anki einen Webserver starten und die Seite oeffnen, z. B.:
+       python -m http.server 8765      ->  http://localhost:8765/tests/lernen.html
+     Oben steht dann OK oder FEHLER mit den Gruenden. -->
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../lernbalken_anki/web/balken.css">
+<link rel="stylesheet" href="../lernbalken_anki/web/lernen.css">
+<link rel="stylesheet" href="../lernbalken_anki/web/vokabeln.css">
+<style>body { font: 16px "Segoe UI", sans-serif; } #ergebnis { font-weight: 700; margin-top: 110px; } .feld { width: 500px; }</style>
+</head><body>
+<div id="qa"></div>
+<div class="feld" id="host"></div>
+<pre id="ergebnis">läuft …</pre>
+<script>
+  window.LOG = []; window.ABDECK = null;
+  window.pycmd = function (c, cb) {
+    LOG.push(c);
+    if (c.indexOf('lb_abdeck:') === 0) ABDECK = JSON.parse(c.slice(10));
+    if (cb) setTimeout(function () { cb(c === 'lb_vok_liste' ? [] : null); }, 0);
+    return false;
+  };
+  customElements.define('anki-editable', class extends HTMLElement {});
+</script>
+<script src="../lernbalken_anki/web/balken.js"></script>
+<script src="../lernbalken_anki/web/rahmen.js"></script>
+<script src="../lernbalken_anki/web/lernen.js"></script>
+<script src="../lernbalken_anki/web/vokabeln.js"></script>
+<script src="../lernbalken_anki/web/bilder.js"></script>
+<script>
+(async function () {
+  var fehler = [], warte = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function soll(ok, text) { if (!ok) fehler.push(text); }
+  var qa = document.getElementById('qa');
+
+  function markiere(node, a, b, strg) {
+    qa.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+    var r = document.createRange(); r.setStart(node, a); r.setEnd(node, b);
+    getSelection().removeAllRanges(); getSelection().addRange(r);
+    qa.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 60, clientY: 0, ctrlKey: !!strg }));
+    qa.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  }
+  function klick(el) {
+    el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  }
+  function textNode(el, enthaelt) {
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (w.nextNode()) if (w.currentNode.data.indexOf(enthaelt) >= 0) return w.currentNode;
+  }
+
+  // Filter-Schalter
+  lernbalken.setze({ name: 'B2', pfad: 'X', pct: 10, karten: 1, fach: null, heute: 0, filter: { neu: true, mc: false } });
+  soll(document.querySelector('.lb-filter[data-art="neu"]').classList.contains('an'), 'New only soll an sein');
+  soll(!document.querySelector('.lb-filter[data-art="mc"]').classList.contains('an'), 'MC only soll aus sein');
+  lernbalken.filter({ neu: false, mc: false });
+  // Helle Leiste: fest 20 %, offen 15 % -> hell reicht bis 35 %
+  lernbalken.setze({ name: 'B2', pfad: 'X', pct: 20, offen: 15, karten: 1, fach: null, heute: 0 });
+  soll(document.querySelector('.lb-offen').style.width === '35%', 'helle Leiste: ' + document.querySelector('.lb-offen').style.width);
+
+  // Abdecken
+  lernbalken.setze({ name: 'B2', pfad: 'X', pct: 10, karten: 1, fach: null, heute: 0 });
+  qa.innerHTML = '<div>Der <b>Meniskus</b> liegt im Kniegelenk. Das Kniegelenk ist groß.</div>' +
+    '<script>var s = "Kniegelenk im Skript";<\/script><div id="a">Innen- und Außenmeniskus</div>';
+  lernen.karte({ nid: 7, gruppen: [], an: true });
+  klick(document.querySelector('.lb-werkzeug-knopf'));
+  markiere(document.querySelector('b').firstChild, 0, 8);
+  var t = textNode(qa, 'Das Kniegelenk'), i = t.data.indexOf('Das Kniegelenk') + 4;
+  markiere(t, i, i + 10, true);
+  markiere(document.getElementById('a').firstChild, 0, 5);
+  soll(JSON.stringify(ABDECK && ABDECK.gruppen) ===
+    '[[{"t":"Meniskus","n":0},{"t":"Kniegelenk","n":1}],[{"t":"Innen","n":0}]]',
+    'Strg-Gruppe / zweites Vorkommen / Skripttext falsch: ' + JSON.stringify(ABDECK));
+
+  // neu zeichnen wie bei der naechsten Ansicht, dann Gruppe 0 aufdecken
+  lernen.karte({ nid: 7, gruppen: ABDECK.gruppen, an: true });
+  var decken = document.querySelectorAll('#qa span.lb-deck');
+  soll(decken.length === 3, 'erwartet 3 Abdeckungen, sind ' + decken.length);
+  soll(decken[1].textContent === 'Kniegelenk' && t.parentNode && decken[1].previousSibling.data.slice(-4) === 'Das ',
+    'falsches Kniegelenk abgedeckt');
+  klick(document.querySelector('span.lb-deck[data-g="0"]'));
+  var zustand = Array.prototype.map.call(document.querySelectorAll('#qa span.lb-deck'), function (s) {
+    return s.dataset.g + (s.classList.contains('offen') ? '+' : '-');
+  }).join(' ');
+  soll(zustand === '0+ 0+ 1-', 'Aufdecken der Gruppe: ' + zustand);
+  klick(document.querySelector('.lb-schalter'));
+  soll(!document.querySelector('#qa span.lb-deck'), 'Schalter aus laesst Abdeckungen stehen');
+  klick(document.querySelector('.lb-schalter'));
+
+  // Undo: MC-Auswahl wird beim Aufdecken gemerkt; nach undoVorbereiten() stellt die Vorderseite sie wieder her
+  var vorne = await (await fetch('../lernbalken_anki/karte/vorne.html')).text();
+  function vorderseite(id) {   // echtes Skript aus karte/vorne.html, Felder A-C
+    qa.innerHTML = vorne.replace(/\{\{text:Richtig\}\}/, 'A').replace(/\{\{text:ID\}\}/, id).replace(/\{\{Frage\}\}/, 'Frage ' + id)
+      .replace(/\{\{#([A-F])\}\}(.*?)\{\{\/\1\}\}/g, function (_, k, inner) { return k < 'D' ? inner.replace('{{' + k + '}}', 'Antwort ' + k) : ''; })
+      .replace(/<script>[\s\S]*<\/script>/, '');
+    new Function(vorne.match(/<script>([\s\S]*)<\/script>/)[1])();
+    lernen.karte({ nid: 1, gruppen: [], an: true });
+  }
+  function rueckseite() {
+    qa.innerHTML = '<div class="lbmc" data-seite="hinten"></div>';
+    lernen.karte({ nid: 1, gruppen: [], an: true });
+  }
+  function waehle(k) { qa.querySelector('.lbmc-opt[data-k="' + k + '"]').click(); }
+  function stand() {
+    return Array.prototype.map.call(qa.querySelectorAll('.lbmc-opt'), function (o) { return o.dataset.k + (o.classList.contains('gewaehlt') ? '*' : ''); }).join(' ');
+  }
+  vorderseite('A'); waehle('B'); var standA = stand(); rueckseite();          // A mit B beantwortet
+  vorderseite('B'); waehle('C'); var standB = stand();                       // B: C gewaehlt ...
+  lernen.undoVorbereiten(); vorderseite('B');                                // ... Undo auf der Frageseite
+  soll(stand() === standB, 'Undo auf der Frageseite mischt neu: ' + stand() + ' statt ' + standB);
+  rueckseite();                                                              // B beantwortet
+  vorderseite('C');                                                          // C steht da
+  lernen.undoVorbereiten(); vorderseite('B');                                // 1. Undo: Antwort von B
+  soll(stand() === standB, 'Undo der Antwort von B: ' + stand() + ' statt ' + standB);
+  lernen.undoVorbereiten(); vorderseite('A');                                // 2. Undo: Antwort von A
+  soll(stand() === standA, 'zweites Undo, Antwort von A: ' + stand() + ' statt ' + standA);
+  vorderseite('A');                                                          // spaeter normal wieder: neu, ohne Auswahl
+  soll(stand().indexOf('*') < 0, 'ohne Undo darf keine alte Auswahl erscheinen: ' + stand());
+
+  // Editor: wie in Anki baut das Feld sich nach jeder Aenderung neu auf (frische Elemente).
+  // Genau daran ist das zweite Ziehen frueher gescheitert.
+  function zeiger(art, x, y, el) {
+    (el || window).dispatchEvent(new PointerEvent(art, { bubbles: true, composed: true, cancelable: true, clientX: x, clientY: y, button: 0, pointerId: 1 }));
+  }
+  var root = document.getElementById('host').attachShadow({ mode: 'open' });
+  root.innerHTML = '<anki-editable style="display:block">Text<div><img src="data:image/svg+xml;utf8,' +
+    encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"/>') + '"></div></anki-editable>';
+  var feld = root.querySelector('anki-editable'), neuaufbau = 0;
+  var beob = new MutationObserver(function () {
+    setTimeout(function () {
+      beob.disconnect();
+      var h = feld.innerHTML; feld.innerHTML = h; neuaufbau++;
+      beob.observe(feld, { childList: true, subtree: true, attributes: true, characterData: true });
+    }, 0);
+  });
+  beob.observe(feld, { childList: true, subtree: true, attributes: true, characterData: true });
+  function eimg() { return feld.querySelector('img'); }
+  function rahmenBox() { return Array.prototype.filter.call(document.querySelectorAll('.lb-rahmen'), function (r) { return r.style.display !== 'none'; })[0]; }
+  await warte(50);
+  var b = eimg().getBoundingClientRect();
+  zeiger('pointerdown', b.left + 5, b.top + 5, eimg());           // 1. Ziehen direkt am Bild
+  zeiger('pointermove', b.left + 105, b.top + 45); zeiger('pointerup', b.left + 105, b.top + 45);
+  await warte(30);
+  var nb = eimg().getBoundingClientRect();
+  soll(neuaufbau > 0, 'Nachbau von Ankis Neuaufbau lief nicht');
+  soll(eimg().dataset.lbFrei === '1' && Math.round(nb.left - b.left) === 100 && Math.round(nb.top - b.top) === 40,
+    '1. Ziehen nicht um 100/40: ' + eimg().getAttribute('style'));
+  soll(eimg().parentNode === feld && !feld.querySelector('div'), 'Bild nicht direkt im Feld oder leere Zeile bleibt');
+  var box = rahmenBox();
+  soll(box, 'Rahmen nach dem Ziehen weg');
+  zeiger('pointerdown', nb.left + 10, nb.top + 10, box);         // 2. Ziehen am Rahmen, nach dem Neuaufbau
+  zeiger('pointermove', nb.left + 40, nb.top + 30); zeiger('pointerup', nb.left + 40, nb.top + 30);
+  await warte(30);
+  var n2 = eimg().getBoundingClientRect();
+  soll(Math.round(n2.left - nb.left) === 30 && Math.round(n2.top - nb.top) === 20, '2. Ziehen nicht um 30/20: ' + eimg().getAttribute('style'));
+  var nw = box.querySelector('[data-ecke="nw"]').getBoundingClientRect();   // groesser an der Ecke oben links
+  zeiger('pointerdown', nw.left + 4, nw.top + 4, box.querySelector('[data-ecke="nw"]'));
+  zeiger('pointermove', nw.left + 4 - 60, nw.top + 4); zeiger('pointerup', nw.left + 4 - 60, nw.top + 4);
+  await warte(30);
+  var n3 = eimg().getBoundingClientRect();
+  soll(Math.round(n3.width) === 180 && Math.round(n3.right) === Math.round(n2.right) && Math.round(n3.bottom) === Math.round(n2.bottom),
+    'Ecke oben links: Breite ' + n3.width + ', rechts/unten muessen stehen bleiben');
+  soll(parseInt(feld.style.minHeight, 10) >= Math.round(n3.bottom - feld.getBoundingClientRect().top) - 1, 'Feld nicht hoch genug: ' + feld.style.minHeight);
+  var se = box.querySelector('[data-ecke="se"]').getBoundingClientRect();   // kleiner an der Ecke unten rechts
+  zeiger('pointerdown', se.left + 4, se.top + 4, box.querySelector('[data-ecke="se"]'));
+  zeiger('pointermove', se.left + 4 - 80, se.top + 4); zeiger('pointerup', se.left + 4 - 80, se.top + 4);
+  await warte(30);
+  var n4 = eimg().getBoundingClientRect();
+  soll(Math.round(n4.width) === 100 && Math.round(n4.left) === Math.round(n3.left) && Math.round(n4.top) === Math.round(n3.top),
+    'Ecke unten rechts: Breite ' + n4.width + ', links/oben muessen stehen bleiben');
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+  await warte(30);
+  soll(!eimg(), 'Entf loescht das gewaehlte Bild nicht');
+  beob.disconnect();
+
+  // Lernfenster: Doppelklick auf ein Bild, ziehen, wird an Python geschickt
+  qa.innerHTML = '<div class="lbk"><div class="lbk-frage">Frage<div><img id="kb" src="herz.svg" style="width:80px;height:40px"></div></div></div>';
+  lernen.karte({ nid: 2, gruppen: [], an: true });
+  var kb = document.getElementById('kb'), k0 = kb.getBoundingClientRect();
+  kb.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+  var kbox = rahmenBox();
+  soll(kbox, 'Doppelklick zeigt keinen Rahmen');
+  zeiger('pointerdown', k0.left + 5, k0.top + 5, kbox);
+  zeiger('pointermove', k0.left + 75, k0.top + 25); zeiger('pointerup', k0.left + 75, k0.top + 25);
+  var k1 = kb.getBoundingClientRect(), gesendet = LOG.filter(function (c) { return c.indexOf('lb_bild:') === 0; }).pop();
+  soll(Math.round(k1.left - k0.left) === 70 && Math.round(k1.top - k0.top) === 20, 'Lernfenster: nicht um 70/20 verschoben ' + kb.getAttribute('style'));
+  soll(kb.parentElement.className === 'lbk-frage', 'Lernfenster: Bild nicht im Feld-Element');
+  var gd = gesendet && JSON.parse(gesendet.slice(8));
+  soll(gd && gd.src === 'herz.svg' && /%$/.test(gd.width) && /%$/.test(gd.left) && /px$/.test(gd.top), 'Lernfenster: falsche Nachricht ' + gesendet);
+
+  // Seitlich ueber das Feld hinaus: Feld 300 px breit ab x=200, Bild bei x=50 -> links negativ, aber im Fenster
+  var schmal = document.createElement('div');
+  schmal.style.cssText = 'position:relative;width:300px;margin-left:200px;height:50px';
+  document.body.appendChild(schmal);
+  var sr = schmal.getBoundingClientRect();
+  var lg = lbRahmen.freieLage({ left: sr.left - 150, top: sr.top, width: 120, height: 60 }, schmal);
+  soll(lg.left === '-50%' && lg.width === '40%', 'links neben dem Feld: ' + JSON.stringify(lg));
+  var ganz = lbRahmen.freieLage({ left: -500, top: sr.top, width: 120, height: 60 }, schmal);
+  soll(parseFloat(ganz.left) * 3 + sr.left >= -1, 'nicht aus dem Fenster: ' + JSON.stringify(ganz));
+  schmal.remove();
+
+  var aus = document.getElementById('ergebnis');
+  aus.textContent = fehler.length ? 'FEHLER\n- ' + fehler.join('\n- ') : 'OK';
+  aus.style.color = fehler.length ? '#c00' : '#080';
+})();
+</script>
+</body></html>

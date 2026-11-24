@@ -1,0 +1,60 @@
+/* Knoepfe im Balken: Abdecken (+ Schalter) und Buch. Grundaussehen (.lb-knopf) steht beim Stern in balken.css */
+#lb-balken .lb-schalter, #lb-balken .lb-schalter:hover, #lb-balken .lb-schalter:active {
+  background-image: none; box-shadow: none; transform: none; outline: none;
+}
+#lb-balken .lb-knopf svg { stroke-linecap: round; }
+.lb-trenner { width: 1px; height: 18px; background: var(--lb-spur); align-self: center; }
+
+.lb-abdeck-gruppe { display: inline-flex; align-items: center; gap: 4px; align-self: center; }
+#lb-balken .lb-werkzeug-knopf.an { color: #7c5cff; border-color: rgba(124, 92, 255, .55); background: rgba(124, 92, 255, .12); }
+#lb-balken .lb-werkzeug-knopf.an svg rect { fill: currentColor; }
+#lb-balken .lb-werkzeug-knopf.an .lb-strich { stroke: #fff; }
+.nightMode #lb-balken .lb-werkzeug-knopf.an, #lb-balken.nacht .lb-werkzeug-knopf.an { color: #a996ff; }
+
+/* An/Aus-Schalter */
+#lb-balken .lb-schalter {
+  pointer-events: auto; cursor: pointer; position: relative; margin: 0; padding: 0;
+  width: 30px; height: 17px; border-radius: 99px; border: 1px solid var(--lb-spur);
+  background: var(--lb-spur); transition: background .18s, border-color .18s;
+}
+#lb-balken .lb-schalter .lb-knauf {
+  position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: left .18s;
+}
+#lb-balken .lb-schalter.an { background: #7c5cff; border-color: #7c5cff; }
+#lb-balken .lb-schalter.an .lb-knauf { left: 15px; }
+
+/* Abdeckungen */
+span.lb-deck {
+  background: #6b5bd6; color: transparent !important; border-radius: 4px;
+  box-shadow: 0 0 0 1px #6b5bd6; cursor: pointer; transition: background .15s, color .15s;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+span.lb-deck * { color: transparent !important; }
+span.lb-deck img { visibility: hidden; }
+span.lb-deck:hover { background: #7f70e6; box-shadow: 0 0 0 1px #7f70e6; }
+span.lb-deck.offen, span.lb-deck.offen * {
+  background: rgba(124, 92, 255, .14); color: inherit !important; box-shadow: none;
+}
+span.lb-deck.offen { border-bottom: 2px dashed rgba(124, 92, 255, .7); border-radius: 3px 3px 0 0; }
+span.lb-deck.offen img { visibility: visible; }
+.nightMode span.lb-deck.offen, .nightMode span.lb-deck.offen * { background: rgba(169, 150, 255, .16); }
+html.lb-werkzeug #qa { cursor: text; }
+html.lb-werkzeug #qa ::selection { background: rgba(124, 92, 255, .35); }
+
+/* Knopf an der Markierung */
+.lb-vok-pop {
+  position: absolute; z-index: 10000; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 4px; margin: 0;
+  font: 600 12px "Segoe UI", system-ui, sans-serif; color: #fff; cursor: pointer;
+  background: #1d1b26; border: 0; border-radius: 99px; padding: 5px 11px 5px 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
+}
+.lb-vok-pop[hidden] { display: none; }
+.lb-vok-pop svg { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.lb-vok-pop:hover { background: #7c5cff; }
+.nightMode .lb-vok-pop { background: #ecebf3; color: #1d1b26; }
+.nightMode .lb-vok-pop:hover { background: #a996ff; }
+
+/* Antworten der MC-Karten sollen sich auch markieren lassen */
+.lbmc-opt { -webkit-user-select: text; user-select: text; }

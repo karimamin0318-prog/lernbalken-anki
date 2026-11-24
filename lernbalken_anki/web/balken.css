@@ -19,34 +19,47 @@
   --lb-grund: rgba(27, 26, 34, .84);
 }
 #lb-balken[hidden] { display: none; }
-html.lb-an #qa { margin-top: 90px; }
+html.lb-an #qa { margin-top: 100px; }
 
-.lb-innen { position: relative; width: min(620px, calc(100% - 40px)); margin: 0 auto; }
+/* Aufbau: Kopf (Deckname links, Knoepfe rechts) / Spur mit Prozent rechts daneben / Fuss (Fach, heute) */
+.lb-innen { position: relative; width: min(744px, calc(100% - 40px)); margin: 0 auto; }
 
 .lb-kopf, .lb-fuss {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
   white-space: nowrap;
 }
-.lb-kopf { font-size: 13px; margin-bottom: 6px; }
-.lb-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.lb-kopf { font-size: 13px; margin-bottom: 8px; min-height: 26px; }
+.lb-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .lb-pfad { color: var(--lb-leise); font-weight: 400; }
-.lb-pct { font-weight: 700; font-variant-numeric: tabular-nums; }
-.lb-fuss { font-size: 11.5px; color: var(--lb-leise); margin-top: 5px; font-variant-numeric: tabular-nums; }
+.lb-zeile { display: flex; align-items: center; gap: 12px; }
+.lb-zeile .lb-spur { flex: 1; }
+.lb-pct { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 50px; text-align: end; }
+.lb-fuss { font-size: 11.5px; color: var(--lb-leise); margin-top: 6px; font-variant-numeric: tabular-nums; }
 .lb-heute { display: inline-block; transform-origin: right center; }
 
 .lb-spur {
-  position: relative; height: 10px; border-radius: 99px;
+  position: relative; height: 11px; border-radius: 99px;
   background: var(--lb-spur);
 }
 .lb-fuell {
   position: absolute; inset: 0 auto 0 0; width: 0%;
   border-radius: inherit; overflow: hidden;
   background: linear-gradient(90deg, #12b76a 0%, #22c55e 50%, #4ade80 85%, #86efac 100%);
-  background-size: 620px 100%;
+  background-size: 682px 100%;
   box-shadow: 0 0 12px rgba(34, 197, 94, .45);
   transition: width .95s cubic-bezier(.22, 1.2, .36, 1);
 }
 .lb-fuell.ohne { transition: none; }
+/* Helles Gruen hinter dem kraeftigen: Karten auf 5 min / 30 min / 3 h. Wird bei Tomorrow zu kraeftigem Gruen. */
+.lb-offen {
+  position: absolute; inset: 0 auto 0 0; width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4ade80, #86efac);
+  opacity: .42;
+  transition: width .95s cubic-bezier(.22, 1.2, .36, 1);
+}
+.lb-offen.ohne { transition: none; }
+.nightMode #lb-balken .lb-offen, #lb-balken.nacht .lb-offen { opacity: .32; }
 .lb-glanz {
   position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
@@ -96,19 +109,31 @@ html.lb-an #qa { margin-top: 90px; }
 #lb-balken.statisch .lb-innen { width: min(420px, 100%); text-align: left; }
 
 /* Stern: markiert die Frage als wichtig (Ankis eigene Markierung) */
-.lb-rechts { display: inline-flex; align-items: baseline; gap: 12px; }
-#lb-balken .lb-stern, #lb-balken .lb-stern:hover, #lb-balken .lb-stern:active {
+.lb-rechts { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+/* .lb-knopf: die Knoepfe Abdecken und Buch aus lernen.js sehen aus wie der Stern */
+#lb-balken :is(.lb-stern, .lb-knopf), #lb-balken :is(.lb-stern, .lb-knopf):hover, #lb-balken :is(.lb-stern, .lb-knopf):active {
   background-image: none; box-shadow: none; transform: none; outline: none;
 }
-#lb-balken .lb-stern {
+#lb-balken :is(.lb-stern, .lb-knopf) {
   margin: 0; pointer-events: auto; cursor: pointer; align-self: center;
   display: inline-flex; align-items: center; gap: 5px;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--lb-leise);
   background: transparent; border: 1px solid var(--lb-spur); border-radius: 99px;
   padding: 2px 9px 2px 7px;
 }
-#lb-balken .lb-stern svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-#lb-balken .lb-stern:hover { color: var(--lb-text); border-color: currentColor; }
+#lb-balken :is(.lb-stern, .lb-knopf) svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+#lb-balken :is(.lb-stern, .lb-knopf):hover { color: var(--lb-text); border-color: currentColor; }
 #lb-balken .lb-stern.an { color: #e6a700; border-color: rgba(230, 167, 0, .5); background: rgba(255, 200, 60, .12); }
 #lb-balken .lb-stern.an svg { fill: currentColor; }
 .nightMode #lb-balken .lb-stern.an, #lb-balken.nacht .lb-stern.an { color: #ffc94d; }
+
+/* Schalter "New only" (Speedrun) und "MC only": an = lila */
+#lb-balken .lb-filter.an { color: #7c5cff; border-color: rgba(124, 92, 255, .5); background: rgba(124, 92, 255, .12); }
+#lb-balken .lb-filter.an svg { stroke-width: 2.2; }
+.nightMode #lb-balken .lb-filter.an, #lb-balken.nacht .lb-filter.an { color: #a996ff; }
+
+/* Schalter "New only" (Speedrun) und "MC only": an = lila */
+#lb-balken .lb-filter.an { color: #7c5cff; border-color: rgba(124, 92, 255, .5); background: rgba(124, 92, 255, .12); }
+.nightMode #lb-balken .lb-filter.an, #lb-balken.nacht .lb-filter.an { color: #a996ff; }
+#lb-balken .lb-hinweis { justify-content: flex-start; color: #7c5cff; font-weight: 600; }
+.nightMode #lb-balken .lb-hinweis { color: #a996ff; }

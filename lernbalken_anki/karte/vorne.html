@@ -18,17 +18,25 @@
   var mehrere = richtig.length > 1;
   var liste = box.querySelector('.lbmc-optionen');
   var opts = Array.prototype.slice.call(liste.children);
-  // Reihenfolge mischen, damit man sich nicht die Position merkt
-  for (var i = opts.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+  var id = box.dataset.id + '|' + box.querySelector('.lbmc-frage').textContent;
+  // Undo im Lernbalken-Add-on: dieselbe Karte kommt mit ihrer alten Reihenfolge und Auswahl zurueck
+  var alt = window.__lbmcUndo && window.__lbmcGemerkt ? window.__lbmcGemerkt[id] : null;
+  if (alt) {
+    opts.sort(function (a, b) { return alt.reihe.indexOf(a.dataset.k) - alt.reihe.indexOf(b.dataset.k); });
+  } else {
+    alt = null;
+    // Reihenfolge mischen, damit man sich nicht die Position merkt
+    for (var i = opts.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+    }
   }
   opts.forEach(function (o) { liste.appendChild(o); });
   box.querySelector('.lbmc-hinweis').textContent = mehrere
     ? richtig.length + ' Antworten sind richtig'
     : 'Eine Antwort ist richtig';
-  var zustand = { id: box.dataset.id + '|' + box.querySelector('.lbmc-frage').textContent,
-                  reihe: opts.map(function (o) { return o.dataset.k; }), wahl: [] };
+  var zustand = { id: id, reihe: opts.map(function (o) { return o.dataset.k; }), wahl: alt ? alt.wahl.slice() : [] };
+  opts.forEach(function (x) { x.classList.toggle('gewaehlt', zustand.wahl.indexOf(x.dataset.k) >= 0); });
   function merken() {
     window.__lbmc = zustand;
     try { sessionStorage.setItem('lbmc', JSON.stringify(zustand)); } catch (e) {}

@@ -2,5 +2,8 @@
   "modus": "eigen",
   "ton": true,
   "lautstaerke": 0.35,
-  "lernbalken_datei": ""
+  "lernbalken_datei": "",
+  "abdecken": true,
+  "nur_neu": false,
+  "nur_mc": false
 }

@@ -76,12 +76,13 @@ def _deck_ids(col, did) -> str:
     return ids2str(col.decks.deck_and_child_ids(did))
 
 
-def deck_fortschritt(col, did) -> tuple[float, int]:
+def deck_fortschritt(col, did) -> tuple[float, float, int]:
     ids = _deck_ids(col, did)
+    # In Filterdecks (Important) steht der echte Faelligkeitstag in odue
     karten = col.db.all(
-        f"select type, queue, ivl from cards where did in {ids} or odid in {ids}"
+        f"select type, queue, case when odid and odue then odue else due end from cards where did in {ids} or odid in {ids}"
     )
-    return fortschritt([(int(t), int(q), int(i)) for t, q, i in karten])
+    return fortschritt([(int(t), int(q), int(d)) for t, q, d in karten], col.sched.today)
 
 
 def richtig_heute(col, did) -> int:
@@ -101,11 +102,12 @@ def balken_daten(col, did) -> dict | None:
         return None
     name = deck["name"]
     teile = name.split("::")
-    pct, n = deck_fortschritt(col, did)
+    pct, offen, n = deck_fortschritt(col, did)
     daten = {
         "name": teile[-1],
         "pfad": " › ".join(teile[:-1]),
         "pct": round(pct, 2),
+        "offen": round(offen, 2),
         "karten": n,
         "fach": None,
         "fachPct": None,
@@ -114,7 +116,7 @@ def balken_daten(col, did) -> dict | None:
     if len(teile) > 1:
         fach_id = col.decks.id_for_name(teile[0])
         if fach_id:
-            fpct, _ = deck_fortschritt(col, fach_id)
+            fpct, _, _ = deck_fortschritt(col, fach_id)
             daten["fach"] = teile[0]
             daten["fachPct"] = round(fpct, 2)
     return daten

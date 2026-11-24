@@ -1,0 +1,102 @@
+/* Vokabel-Fenster, im Lernfenster und in der Deckliste */
+.lb-vok {
+  --v-grund: var(--canvas-elevated, #fff);
+  --v-text: var(--fg, #1d1b26);
+  --v-leise: var(--fg-subtle, rgba(29, 27, 38, .6));
+  --v-rand: var(--border, rgba(110, 100, 150, .22));
+  --v-fein: var(--border-subtle, rgba(110, 100, 150, .12));
+  --v-akzent: #7c5cff;
+  position: fixed; inset: 0; z-index: 10001; display: none;
+  align-items: flex-start; justify-content: center; padding: 6vh 16px 16px;
+  background: rgba(20, 18, 30, .38);
+  font-family: "Segoe UI", system-ui, sans-serif; color: var(--v-text); text-align: start;
+}
+.lb-vok.offen { display: flex; }
+.lb-vok-karte {
+  width: min(640px, 100%); max-height: 86vh; display: flex; flex-direction: column;
+  background: var(--v-grund); border: 1px solid var(--v-rand); border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .25); overflow: hidden;
+}
+.lb-vok button { font: inherit; margin: 0; cursor: pointer; box-shadow: none; background-image: none; }
+.lb-vok-kopf { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 0 16px; }
+.lb-vok-tabs { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--v-rand); border-radius: 99px; }
+.lb-vok-tabs button {
+  border: 0; background: transparent; color: var(--v-leise); font-size: 13px; font-weight: 600;
+  padding: 6px 16px; border-radius: 99px;
+}
+.lb-vok-tabs button:hover { color: var(--v-text); }
+.lb-vok-tabs button.an { background: var(--v-akzent); color: #fff; }
+.lb-vok-zu {
+  border: 0; background: transparent; color: var(--v-leise); font-size: 24px; line-height: 1;
+  width: 34px; height: 34px; border-radius: 8px;
+}
+.lb-vok-zu:hover { color: var(--v-text); background: var(--v-fein); }
+.lb-vok-inhalt { padding: 14px 16px 16px; overflow: auto; }
+
+.lb-vok-haupt {
+  border: 1px solid var(--v-akzent) !important; background: var(--v-akzent) !important; color: #fff !important;
+  border-radius: 8px; padding: 7px 14px; font-weight: 600;
+}
+.lb-vok-haupt:hover { filter: brightness(1.08); }
+.lb-vok-knoepfe { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.lb-vok-knoepfe.mitte { justify-content: center; }
+.lb-vok-knoepfe button:not(.lb-vok-haupt) {
+  border: 1px solid var(--v-rand); background: transparent; color: var(--v-text); border-radius: 8px; padding: 7px 14px;
+}
+.lb-vok kbd { font: 11px ui-monospace, monospace; opacity: .7; margin-inline-start: 4px; }
+
+/* Liste */
+.lb-vok-leiste { display: flex; gap: 8px; margin-bottom: 10px; }
+.lb-vok-suche, .lb-vok-form input, .lb-vok-form textarea {
+  flex: 1; font: inherit; font-size: 14px; color: var(--v-text); background: transparent;
+  border: 1px solid var(--v-rand); border-radius: 8px; padding: 7px 10px; box-sizing: border-box;
+}
+.lb-vok-suche:focus, .lb-vok-form input:focus, .lb-vok-form textarea:focus { outline: 2px solid rgba(124, 92, 255, .45); border-color: var(--v-akzent); }
+.lb-vok-eintrag { display: flex; gap: 10px; padding: 10px 4px; border-top: 1px solid var(--v-fein); }
+.lb-vok-eintrag:first-child { border-top: 0; }
+.lb-vok-text { flex: 1; min-width: 0; }
+.lb-vok-wort { font-weight: 700; font-size: 15px; }
+.lb-vok-erkl { margin-top: 2px; font-size: 14px; white-space: pre-wrap; }
+.lb-vok-quelle { margin-top: 3px; font-size: 11.5px; color: var(--v-leise); }
+.lb-vok-aktionen { display: flex; gap: 2px; align-items: flex-start; opacity: 0; transition: opacity .12s; }
+.lb-vok-eintrag:hover .lb-vok-aktionen, .lb-vok-aktionen:focus-within { opacity: 1; }
+.lb-vok-aktionen button {
+  border: 0; background: transparent; color: var(--v-leise); border-radius: 6px; padding: 4px 7px; font-size: 13px;
+}
+.lb-vok-aktionen button:hover { background: var(--v-fein); color: var(--v-text); }
+.lb-vok-aktionen button.sicher { color: #fff; background: #e5484d; }
+.lb-vok-leer { color: var(--v-leise); text-align: center; padding: 18px 8px; line-height: 1.5; }
+
+/* Formular */
+.lb-vok-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--v-leise); margin-bottom: 10px; }
+.lb-vok-form textarea { resize: vertical; min-height: 90px; }
+.lb-vok-hinweis { margin: 6px 0 0; font-size: 11.5px; color: var(--v-leise); text-align: end; }
+
+/* Abfragen */
+.lb-vok-stand { font-size: 12px; color: var(--v-leise); font-variant-numeric: tabular-nums; }
+.lb-vok-spur { height: 6px; border-radius: 99px; background: var(--v-fein); margin-top: 5px; overflow: hidden; }
+.lb-vok-spur div { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: inherit; transition: width .3s; }
+.lb-vok-frage {
+  margin-top: 14px; padding: 28px 18px; text-align: center; border: 1px solid var(--v-rand); border-radius: 12px;
+  cursor: pointer; outline: none; min-height: 110px;
+}
+.lb-vok-frage:focus-visible { border-color: var(--v-akzent); }
+.lb-vok-gross { font-size: 26px; font-weight: 700; }
+.lb-vok-antwort { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--v-rand); font-size: 16px; white-space: pre-wrap; }
+.lb-vok-tipp { margin-top: 14px; font-size: 12.5px; color: var(--v-leise); }
+.lb-vok-ende { text-align: center; padding: 24px 0 8px; }
+
+/* Knopf in der Deckliste */
+.lb-vok-start { margin: 1.2em auto 0; text-align: center; }
+.lb-vok-start button {
+  display: inline-flex; align-items: center; gap: .45em; font: inherit; font-size: .9em; cursor: pointer;
+  color: var(--fg-subtle); background: var(--canvas-elevated); border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-large, 8px); padding: .4em .9em;
+}
+.lb-vok-start button:hover { color: var(--fg); border-color: var(--border-focus); }
+
+/* Buch-Symbol (Balken und Deckliste), in der Textfarbe */
+.lb-buch-icon {
+  display: inline-block; width: 16px; height: 16px; background: currentColor; flex: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M4 19.5V5a2 2 0 0 1 2-2h14v14H6a2 2 0 0 0-2 2.5zm0 0A2 2 0 0 0 6 21h14v-4M8 7h8M8 11h5'/%3E%3C/svg%3E") center / contain no-repeat;
+}

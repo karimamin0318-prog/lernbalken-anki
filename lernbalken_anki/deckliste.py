@@ -106,12 +106,12 @@ def html_dazu(eltern: dict, versteckt: list) -> tuple[str, str]:
     if not versteckt:
         return skript, ""
     knoepfe = "".join(
-        f'<button type="button" class="lb-aus-deck" title="Wieder einblenden" '
+        f'<button type="button" class="lb-aus-deck" title="Show again" '
         f'onclick="return pycmd(\'lb_ein:{did}\')">{AUGE_ZU}<span>{html.escape(name.replace("::", " › "))}</span></button>'
         for did, name in sorted(versteckt, key=lambda v: core._natuerlich(v[1]))
     )
     bereich = (
-        f'<details class="lb-aus"><summary>Ausgeblendete Decks ({len(versteckt)})</summary>'
+        f'<details class="lb-aus"><summary>Hidden decks ({len(versteckt)})</summary>'
         f'<div class="lb-aus-liste">{knoepfe}</div></details>'
     )
     return skript, bereich

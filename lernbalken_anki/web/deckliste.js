@@ -11,7 +11,7 @@ $(function () {
     var did = this.id;
     var zelle = $(this).find('td.opts');
     if (!zelle.length || !did) return;
-    var knopf = $('<a class="lb-auge" title="Ausblenden"></a>').html(daten.auge);
+    var knopf = $('<a class="lb-auge" title="Hide"></a>').html(daten.auge);
     knopf.on('click', function (e) {
       e.preventDefault(); e.stopPropagation();
       pycmd('lb_aus:' + did);

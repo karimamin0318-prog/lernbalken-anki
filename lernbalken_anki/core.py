@@ -61,24 +61,28 @@ def deck_plan(daten: dict) -> list[tuple[list[str], str | None]]:
     return plan
 
 
-def karten_wert(typ: int, queue: int, ivl: int) -> float | None:
-    """Wie gut eine Karte sitzt, 0 bis 1. None = zaehlt nicht (ausgesetzt)."""
+def karten_stand(typ: int, queue: int, due: int, heute: int) -> str | None:
+    """Wo eine Karte heute steht. None = zaehlt nicht (ausgesetzt).
+    "fest"  fuer heute erledigt (Tomorrow, 3 days, Done): kraeftiges Gruen
+    "offen" gerade in Arbeit (5 min, 30 min, 3 h): helles Gruen
+    "leer"  heute noch zu tun (neu oder heute faellig)"""
     if queue == -1:
         return None
-    if typ == 0:  # neu
-        return 0.0
-    if typ in (1, 3):  # gerade am Lernen / neu Lernen
-        return 0.2
-    # Wiederholung: ab 21 Tagen Abstand gilt sie als voll gelernt
-    return 0.3 + 0.7 * min(1.0, max(ivl, 0) / 21)
+    if typ in (1, 3):
+        # queue 3 = Lernschritt von einem Tag oder mehr, due ist dann ein Tag (bei queue 1 eine Uhrzeit)
+        return "fest" if queue == 3 and due > heute else "offen"
+    if typ == 2 and due > heute:
+        return "fest"
+    return "leer"
 
 
-def fortschritt(karten: list[tuple[int, int, int]]) -> tuple[float, int]:
-    """Prozent (0 bis 100) und Anzahl zaehlender Karten."""
-    werte = [w for w in (karten_wert(*k) for k in karten) if w is not None]
-    if not werte:
-        return 0.0, 0
-    return 100 * sum(werte) / len(werte), len(werte)
+def fortschritt(karten: list[tuple[int, int, int]], heute: int) -> tuple[float, float, int]:
+    """Prozent fest, Prozent offen (je 0 bis 100) und Anzahl zaehlender Karten. karten: (type, queue, due)."""
+    staende = [s for s in (karten_stand(*k, heute) for k in karten) if s]
+    if not staende:
+        return 0.0, 0.0, 0
+    n = len(staende)
+    return 100 * staende.count("fest") / n, 100 * staende.count("offen") / n, n
 
 
 # Deckliste: eigene Reihenfolge und ausgeblendete Decks
@@ -86,7 +90,7 @@ def fortschritt(karten: list[tuple[int, int, int]]) -> tuple[float, int]:
 
 
 def _natuerlich(name: str):
-    """"B2" vor "B10", Gross/Klein egal. Decks mit Stern (⭐ Wichtig) zuerst."""
+    """"B2" vor "B10", Gross/Klein egal. Decks mit Stern (⭐ Important) zuerst."""
     if name.startswith("⭐"):
         return ["", -1, name.lower()]
     return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", name.lower())]
