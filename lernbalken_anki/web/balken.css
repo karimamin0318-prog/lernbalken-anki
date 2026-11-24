@@ -34,6 +34,9 @@ html.lb-an #qa { margin-top: 100px; }
 .lb-zeile { display: flex; align-items: center; gap: 12px; }
 .lb-zeile .lb-spur { flex: 1; }
 .lb-pct { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 50px; text-align: end; }
+/* Zweite Zahl: Ende des hellen Gruens (fertig + in Arbeit), grau und etwas durchsichtig */
+.lb-pct2 { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--lb-text); opacity: .5; margin-inline-start: -6px; }
+.lb-pct2:empty { display: none; }
 .lb-fuss { font-size: 11.5px; color: var(--lb-leise); margin-top: 6px; font-variant-numeric: tabular-nums; }
 .lb-heute { display: inline-block; transform-origin: right center; }
 

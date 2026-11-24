@@ -4,7 +4,7 @@
   'use strict';
   if (window.lernbalken) return;
 
-  var el, fuell, offenEl, glanz, spitze, pctEl, nameEl, pfadEl, fachEl, heuteEl, innen, sternEl;
+  var el, fuell, offenEl, pct2El, glanz, spitze, pctEl, nameEl, pfadEl, fachEl, heuteEl, innen, sternEl;
   var angezeigt = null;   // aktuell gezeigter Prozentwert
   var deckName = null;
   var serie = 0;
@@ -32,7 +32,7 @@
         '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.4 2.85 1-6L3.3 9.6l6-.9z"/></svg>' +
         '<span>Important</span></button></span></div>' +
         '<div class="lb-zeile"><div class="lb-spur"><div class="lb-offen"></div><div class="lb-fuell"><div class="lb-glanz"></div></div><div class="lb-spitze"></div></div>' +
-        '<span class="lb-pct"></span></div>' +
+        '<span class="lb-pct"></span><span class="lb-pct2"></span></div>' +
         '<div class="lb-fuss"><span class="lb-fach"></span><span class="lb-heute"></span></div>' +
       '</div>';
     document.body.appendChild(el);
@@ -43,6 +43,7 @@
     glanz = el.querySelector('.lb-glanz');
     spitze = el.querySelector('.lb-spitze');
     pctEl = el.querySelector('.lb-pct');
+    pct2El = el.querySelector('.lb-pct2');
     nameEl = el.querySelector('.lb-titel');
     pfadEl = el.querySelector('.lb-pfad');
     fachEl = el.querySelector('.lb-fach');
@@ -98,6 +99,8 @@
     fuell.classList.toggle('ohne', !sanft);
     offenEl.classList.toggle('ohne', !sanft);
     offenEl.style.width = Math.min(100, p + offen) + '%';
+    // Grau daneben: bis wohin das helle Gruen reicht. Ohne Karten in Arbeit waere es dieselbe Zahl, dann leer.
+    pct2El.textContent = offen ? '/ ' + zahl(Math.min(100, p + offen)) : '';
     spitze.classList.toggle('ohne', !sanft);
     fuell.style.width = p + '%';
     spitze.style.left = p + '%';

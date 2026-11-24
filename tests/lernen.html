@@ -58,6 +58,9 @@
   // Helle Leiste: fest 20 %, offen 15 % -> hell reicht bis 35 %
   lernbalken.setze({ name: 'B2', pfad: 'X', pct: 20, offen: 15, karten: 1, fach: null, heute: 0 });
   soll(document.querySelector('.lb-offen').style.width === '35%', 'helle Leiste: ' + document.querySelector('.lb-offen').style.width);
+  soll(document.querySelector('.lb-pct2').textContent === '/ 35,0 %', 'zweite Zahl: ' + document.querySelector('.lb-pct2').textContent);
+  lernbalken.setze({ name: 'B2', pfad: 'X', pct: 20, offen: 0, karten: 1, fach: null, heute: 0 });
+  soll(document.querySelector('.lb-pct2').textContent === '', 'ohne helles Gruen keine zweite Zahl');
 
   // Abdecken
   lernbalken.setze({ name: 'B2', pfad: 'X', pct: 10, karten: 1, fach: null, heute: 0 });

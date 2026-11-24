@@ -327,6 +327,7 @@ def _uebersicht(overview, content) -> None:
         return
     zahl = lambda p: f"{p:.1f}".replace(".", ",") + " %"
     links = html.escape(d["fach"] + " " + zahl(d["fachPct"])) if d["fach"] else f'{d["karten"]} cards'
+    zweite = f'<span class="lb-pct2">/ {zahl(min(100, d["pct"] + d["offen"]))}</span>' if d["offen"] else ""
     f = _filter()
     an = [t for t, ja in (("New only", f["neu"]), ("MC only", f["mc"])) if ja]
     # Filter an: die Zahlen oben (Anki) zaehlen auch Karten, die gerade nicht kommen
@@ -335,7 +336,7 @@ def _uebersicht(overview, content) -> None:
 <div id="lb-balken" class="statisch"><div class="lb-innen">
   <div class="lb-kopf"><span class="lb-name">{html.escape(d["name"])}</span></div>
   <div class="lb-zeile"><div class="lb-spur"><div class="lb-offen ohne" style="width:{min(100, d["pct"] + d["offen"])}%"></div><div class="lb-fuell ohne" style="width:{d["pct"]}%"></div></div>
-  <span class="lb-pct">{zahl(d["pct"])}</span></div>
+  <span class="lb-pct">{zahl(d["pct"])}</span>{zweite}</div>
   <div class="lb-fuss"><span>{links}</span><span>today {d["heute"]} ✓</span></div>
   {hinweis}
 </div></div>"""
