@@ -171,6 +171,19 @@ def undo_art(ansicht: str, last_step: int, gezeigt: tuple, karte: int, undo_name
     return "anki"
 
 
+def redo_art(stapel: list, ansicht: str, karte: int | None, anki_redo: bool) -> str | None:
+    """Was der Redo-Knopf jetzt macht. stapel merkt sich jeden Undo-Klick, der juengste hinten:
+    ("frage", Karte) = Rueckseite wieder zeigen (passt nur, solange genau diese Frage dasteht),
+    ("anki", None)   = Ankis Redo.
+    Ergebnis "frage", "anki" oder None (Knopf grau)."""
+    for art, cid in reversed(stapel):
+        if art != "frage":
+            break
+        if ansicht == "question" and karte == cid:
+            return "frage"
+    return "anki" if anki_redo else None
+
+
 # Total-Spalte
 ##########################################################################
 

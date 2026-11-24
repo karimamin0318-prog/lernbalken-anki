@@ -36,7 +36,7 @@ _ADDON = mw.addonManager.addonFromModule(__name__)
 _WEB = f"/_addons/{_ADDON}/web"
 mw.addonManager.setWebExports(__name__, r"web/.*\.(css|js)")
 
-_zustand = {"mtime": None, "frisch": True, "wahl": None, "zurueck": False, "antwort_name": None, "gezeigt": (None, None), "total": {}, "zuerst": None, "gefiltert": False}
+_zustand = {"mtime": None, "frisch": True, "wahl": None, "zurueck": False, "antwort_name": None, "gezeigt": (None, None), "total": {}, "zuerst": None, "gefiltert": False, "frei_schritt": None, "redo": []}
 _timer: QTimer | None = None
 
 
@@ -229,6 +229,7 @@ def _frage_gezeigt(card) -> None:
             _js("setze", _daten())
         except Exception:
             traceback.print_exc()
+    _redo_knopf()
     try:
         extra = ""
         if _zustand["zurueck"]:
@@ -244,6 +245,10 @@ def _frage_gezeigt(card) -> None:
 def _antwort_gezeigt(card) -> None:
     # Fuer Undo: solange danach nichts an der Sammlung passiert, ist "Rueckseite aufgedeckt" der letzte Schritt
     _zustand["gezeigt"] = (mw.col.undo_status().last_step, card.id)
+    # Selbst aufgedeckt (Leertaste) nach Undo zur Frage: das war genau der Redo-Schritt
+    if _zustand["redo"] and _zustand["redo"][-1] == ("frage", card.id):
+        _zustand["redo"].pop()
+    _redo_knopf()
     try:
         _karte_js(card)
     except Exception:
@@ -251,7 +256,13 @@ def _antwort_gezeigt(card) -> None:
 
 
 def _beantwortet(reviewer, card, ease: int) -> None:
+    # Neue Antwort: Redo geht nicht mehr (Anki leert seine Redo-Liste auch)
+    _zustand["redo"].clear()
     try:
+        # Filter: die Freigabe vor der Antwort und die Antwort sind ein Undo-Schritt
+        schritt, _zustand["frei_schritt"] = _zustand["frei_schritt"], None
+        if schritt:
+            mw.col.merge_undo_entries(schritt)
         richtig = ease > 1
         if _eigen():
             wahl = _zustand["wahl"] or modus.AUS_EASE.get(ease, "1d")
@@ -299,9 +310,10 @@ Reviewer._get_next_v3_card = _naechste
 
 def _vor_antwort(ease_tuple, reviewer, card):
     # Gefilterte Karten liegen oft nicht oben in Ankis Warteschlange: die erst zuruecksetzen
+    _zustand["frei_schritt"] = None
     if _zustand["gefiltert"]:
         try:
-            auswahl.frei(mw.col, card)
+            _zustand["frei_schritt"] = auswahl.frei(mw.col, card)
         except Exception:
             traceback.print_exc()
     return ease_tuple
@@ -430,12 +442,16 @@ def _knoepfe(self) -> str:
 
 
 ZURUECK_HTML = """<style>
-#lb-zurueck { margin-inline-start: 6px; }
-#lb-zurueck svg { vertical-align: -2px; margin-inline-end: 4px; }
+#lb-zurueck, #lb-vor { margin-inline-start: 6px; }
+#lb-zurueck svg, #lb-vor svg { vertical-align: -2px; margin-inline-end: 4px; }
+#lb-vor:disabled { opacity: .4; cursor: default; }
 </style><button id="lb-zurueck" title="Undo your last step"
 onclick="pycmd('lb_zurueck');"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none"
 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button>"""
+d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button><button id="lb-vor" title="Redo what you undid"
+disabled onclick="pycmd('lb_vor');"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none"
+stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+d="M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Redo</button>"""
 
 
 def _leiste(self) -> str:
@@ -474,8 +490,10 @@ def _zurueck() -> None:
     art = extras.undo_art(r.state, status.last_step, _zustand["gezeigt"], r.card.id, status.undo, _zustand["antwort_name"])
     if art == "frage":
         _zustand["gezeigt"] = (None, None)
+        _zustand["redo"].append(("frage", r.card.id))
         r.web.eval("window.lernen && lernen.undoVorbereiten();")
         r._showQuestion()
+        _redo_knopf()
         return
     if not status.undo:
         tooltip("Nothing to undo")
@@ -487,7 +505,57 @@ def _zurueck() -> None:
     # MC-Karten sollen dann nicht neu mischen, sondern Reihenfolge und Auswahl behalten
     if art == "antwort" or r.state == "question":
         r.web.eval("window.lernen && lernen.undoVorbereiten();")
+    _zustand["redo"].append(("anki", None))
     undo(parent=mw)
+
+
+def _redo_art() -> str | None:
+    """Was Redo jetzt macht: "frage", "anki" oder None (siehe extras.redo_art)."""
+    if not mw.col:
+        return None
+    r = mw.reviewer
+    art = extras.redo_art(_zustand["redo"], r.state, r.card.id if r.card else None, bool(mw.col.undo_status().redo))
+    if art is None:
+        _zustand["redo"].clear()   # etwas Neues gemacht: Anki hat seine Redo-Liste geleert
+    return art
+
+
+def _redo_knopf(*_args) -> None:
+    if mw.state != "review" or not mw.col:
+        return
+    try:
+        aus = json.dumps(_redo_art() is None)
+        mw.reviewer.bottom.web.eval(f"(function(){{var b=document.getElementById('lb-vor');if(b)b.disabled={aus};}})();")
+    except Exception:
+        traceback.print_exc()
+
+
+def _vor() -> None:
+    """Redo: nimmt den letzten Undo-Klick zurueck, Schritt fuer Schritt."""
+    r, col = mw.reviewer, mw.col
+    art = _redo_art() if col and r.card else None
+    if not art:
+        tooltip("Nothing to redo")
+        _redo_knopf()
+        return
+    stapel = _zustand["redo"]
+    if art == "frage":
+        while stapel.pop() != ("frage", r.card.id):
+            pass   # veraltete Eintraege darueber
+        r._getTypedAnswer()   # wie Leertaste: Rueckseite wieder zeigen
+        _redo_knopf()
+        return
+    while stapel and stapel[-1][0] == "frage":
+        stapel.pop()
+    if stapel:
+        stapel.pop()
+
+    def danach(out) -> None:
+        tooltip(col.tr.undo_action_redone(action=out.operation), parent=mw)
+        _nach_undo(out)
+
+    # Ohne initiator: das Lernfenster laedt danach neu (bei einer Antwort: weiter zur naechsten Karte)
+    CollectionOp(mw, lambda c: c.redo()).success(danach).run_in_background()
 
 
 def _bild_speichern(d: dict) -> None:
@@ -527,6 +595,7 @@ def _nach_undo(_changes) -> None:
             _js("setze", _daten())
         except Exception:
             traceback.print_exc()
+    _redo_knopf()
 
 
 def _aufdecken() -> None:
@@ -601,9 +670,9 @@ def _tasten(state: str, shortcuts: list) -> None:
 
 
 def _js_nachricht(handled, message: str, context):
-    if isinstance(context, ReviewerBottomBar) and message == "lb_zurueck":
+    if isinstance(context, ReviewerBottomBar) and message in ("lb_zurueck", "lb_vor"):
         try:
-            _zurueck()
+            (_zurueck if message == "lb_zurueck" else _vor)()
         except Exception:
             traceback.print_exc()
         return (True, None)
@@ -668,6 +737,7 @@ gui_hooks.webview_will_set_content.append(_web_inhalt)
 gui_hooks.editor_did_load_note.append(lambda ed: ed.web.eval("window.lbBilderAnpassen && lbBilderAnpassen();"))
 gui_hooks.state_will_change.append(_vor_status)
 gui_hooks.state_did_undo.append(_nach_undo)
+gui_hooks.operation_did_execute.append(_redo_knopf)
 gui_hooks.reviewer_did_show_question.append(_frage_gezeigt)
 gui_hooks.reviewer_did_show_answer.append(_antwort_gezeigt)
 gui_hooks.reviewer_did_answer_card.append(_beantwortet)

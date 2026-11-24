@@ -7,6 +7,8 @@ Ankis Warteschlange zurueck, ohne etwas an der Sammlung oder der Rueckgaengig-Ke
 
 from __future__ import annotations
 
+import time
+
 from anki.collection import SearchNode
 from anki.scheduler_pb2 import QueuedCards
 
@@ -87,6 +89,18 @@ def naechste(col, did: int, neu: bool, mc: bool, zuerst: int | None = None) -> Q
     return q
 
 
-def frei(col, card) -> None:
-    """Ankis Warteschlange zuruecksetzen, damit jede Karte beantwortet werden darf. Aendert nichts."""
-    col._backend.extend_limits(deck_id=card.odid or card.did, new_delta=0, review_delta=0)
+FREI = "lernbalkenFrei"
+
+
+def frei(col, card) -> int:
+    """Ankis Warteschlange zuruecksetzen, damit jede Karte beantwortet werden darf.
+    Dazu wird das Deck der Karte gespeichert (ein unsichtbarer Zeitstempel): jede Deck-Aenderung baut Ankis
+    Warteschlange neu. Nicht extend_limits, das loescht Ankis ganze Undo-Liste (Undo ging dann nur einen Schritt).
+    Gibt den Undo-Schritt zurueck; die Antwort wird danach mit merge_undo_entries angehaengt, so bleibt es
+    ein Schritt mit Ankis Namen fuer Antworten."""
+    schritt = col.add_custom_undo_entry(col.tr.actions_answer_card())
+    deck = col.decks.get(card.did)
+    deck[FREI] = int(time.time() * 1000)
+    col.decks.save(deck)
+    col.merge_undo_entries(schritt)
+    return schritt

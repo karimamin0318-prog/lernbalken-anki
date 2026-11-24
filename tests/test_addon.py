@@ -255,6 +255,22 @@ def test_undo_mehrere_schritte(ordner):
     col.close()
 
 
+def test_redo_knopf():
+    B, A, C = 2, 1, 3
+    assert extras.redo_art([], "question", C, False) is None, "ohne Undo grau"
+    assert extras.redo_art([], "question", C, True) == "anki", "nach Strg+Z geht Redo auch"
+    # Auf der Frage von C: Undo (Antwort B zurueck), Undo (B zur Frage), Undo (Antwort A zurueck)
+    stapel = [("anki", None), ("frage", B), ("anki", None)]
+    assert extras.redo_art(stapel, "answer", A, True) == "anki", "1. Redo: Antwort von A wieder"
+    stapel.pop()
+    assert extras.redo_art(stapel, "question", B, True) == "frage", "2. Redo: Rueckseite von B wieder"
+    assert extras.redo_art(stapel, "answer", A, True) == "anki", "andere Karte: Rueckseite passt nicht, Ankis Redo"
+    stapel.pop()
+    assert extras.redo_art(stapel, "answer", B, True) == "anki", "3. Redo: Antwort von B wieder"
+    assert extras.redo_art([("frage", B)], "question", B, False) == "frage", "Rueckseite braucht kein Anki-Redo"
+    assert extras.redo_art([("anki", None)], "question", B, False) is None, "Neues gemacht: Anki-Redo weg, grau"
+
+
 def test_stern_undo_nimmt_neues_wichtig_deck_mit(ordner):
     """Erster Stern im Fach legt das Important-Deck an. Ein Undo nimmt Stern und Deck zurueck, nicht nur das Deck."""
     col = neue_sammlung(ordner, "sternundo.anki2")
@@ -357,8 +373,9 @@ def _antworten(col, q) -> int:
     e = q.cards[0]
     c = col.get_card(e.card.id)
     c.start_timer()
-    auswahl.frei(col, c)
+    schritt = auswahl.frei(col, c)
     col.sched.answer_card(col.sched.build_answer(card=c, states=e.states, rating=CardAnswer.GOOD))
+    col.merge_undo_entries(schritt)
     return c.id
 
 
@@ -444,6 +461,34 @@ def test_undo_karte_auch_nach_ankis_rueckgaengig(ordner):
     col.undo()                                                       # Undo-Knopf: C zurueck
     assert extras.zuletzt_beantwortet(col) == a, "naechstes Undo nimmt A zurueck, nicht B"
     col.close()
+
+def test_filter_behaelt_undo_liste_und_redo(ordner):
+    """Mit Filter loeschte frei() frueher bei jeder Antwort Ankis ganze Undo-Liste: Undo ging nur einen Schritt."""
+    col = neue_sammlung(ordner, "filter_tief.anki2")
+    _mc_karten(col, "F", 30)
+    did = col.decks.id("F")
+    col.decks.select(did)
+    conf = col.decks.config_dict_for_deck_id(did)
+    conf["new"]["perDay"] = 2                       # Speedrun geht ueber das Tageslimit hinaus
+    col.decks.save(conf)
+    antwort_name = None
+    ids = []
+    for _ in range(25):
+        ids.append(_antworten(col, auswahl.naechste(col, did, neu=True, mc=True)))
+        antwort_name = col.undo_status().undo
+    assert antwort_name == col.tr.actions_answer_card(), "gleicher Name wie Antworten ohne Filter"
+    for i in range(25):
+        assert col.undo_status().undo == antwort_name, f"Undo Nr. {i + 1} ist keine Antwort mehr"
+        assert extras.zuletzt_beantwortet(col) == ids[-1 - i]
+        col.undo()
+    assert extras.zuletzt_beantwortet(col) is None
+    # Redo: Antworten kommen in derselben Reihenfolge wieder
+    for i in range(3):
+        assert col.undo_status().redo == antwort_name
+        col.redo()
+        assert extras.zuletzt_beantwortet(col) == ids[i]
+    col.close()
+
 
 def test_balken_folgt_den_filtern(ordner):
     # 4 Flashcards + 2 MC-Fragen, eine Flashcard schon vor dem Speedrun gesehen
