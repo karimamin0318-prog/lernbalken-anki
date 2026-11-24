@@ -76,14 +76,18 @@ def karten_stand(typ: int, queue: int, due: int, heute: int) -> str | None:
     return "leer"
 
 
-def speedrun_stand(typ: int, queue: int, erste: int | None, seit: int) -> str | None:
-    """Stand im Speedrun (New only): "fest" = seit dem Einschalten zum ersten Mal beantwortet, "leer" = noch neu.
+def speedrun_stand(typ: int, queue: int, due: int, heute: int, erste: int | None, seit: int) -> str | None:
+    """Stand im Speedrun (New only), nur Karten, die beim Einschalten noch neu waren:
+    "leer" = noch neu, "offen" = gesehen und auf 5 min / 30 min / 3 h, "fest" = gesehen und Tomorrow oder spaeter
+    (auch wenn sie inzwischen wieder faellig ist: fuer den Speedrun ist sie durch).
     None = gehoert nicht dazu (schon vorher gesehen oder ausgesetzt). erste = Zeit der ersten Antwort (ms)."""
     if queue == -1:
         return None
     if typ == 0:
         return "leer"
-    return "fest" if erste is not None and erste >= seit else None
+    if erste is None or erste < seit:
+        return None
+    return "offen" if karten_stand(typ, queue, due, heute) == "offen" else "fest"
 
 
 def anteile(staende) -> tuple[float, float, int]:

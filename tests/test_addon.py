@@ -464,8 +464,11 @@ def test_balken_folgt_den_filtern(ordner):
     assert colops.deck_fortschritt(col, did, neu_seit=seit) == (0.0, 0.0, 5)
     mc1 = _antworten(col, auswahl.naechste(col, did, neu=True, mc=True))   # erste neue MC-Frage, nur 5 min
     modus.plane(col, col.get_card(mc1), "5m")
-    assert colops.deck_fortschritt(col, did, neu_seit=seit) == (20.0, 0.0, 5), "im Speedrun zaehlt gesehen = geschafft"
-    assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (50.0, 0.0, 2)
+    assert colops.deck_fortschritt(col, did, neu_seit=seit) == (0.0, 20.0, 5), "Speedrun, 5 min: hell"
+    assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (0.0, 50.0, 2)
+    modus.plane(col, col.get_card(mc1), "1d")
+    assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (50.0, 0.0, 2), "Speedrun, Tomorrow: kraeftig"
+    modus.plane(col, col.get_card(mc1), "5m")
     assert colops.balken_daten(col, did, mc=True, neu_seit=seit)["karten"] == 2
     col.undo()   # Antwort zurueck: wieder neu, wieder offen
     assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (0.0, 0.0, 2)

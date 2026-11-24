@@ -92,10 +92,10 @@ def deck_fortschritt(col, did, mc: bool = False, neu_seit: int | None = None) ->
         f"select c.type, c.queue, case when c.odid and c.odue then c.odue else c.due end, {erste} "
         f"from cards c join notes n on n.id = c.nid where {wo}"
     )
+    heute = col.sched.today
     if neu_seit is None:
-        heute = col.sched.today
         return anteile(karten_stand(int(t), int(q), int(d), heute) for t, q, d, _ in karten)
-    return anteile(speedrun_stand(int(t), int(q), e, neu_seit) for t, q, _, e in karten)
+    return anteile(speedrun_stand(int(t), int(q), int(d), heute, e, neu_seit) for t, q, d, e in karten)
 
 
 def richtig_heute(col, did) -> int:
