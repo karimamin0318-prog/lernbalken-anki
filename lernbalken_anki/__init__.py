@@ -68,6 +68,10 @@ def _log(text: str) -> None:
 def _decks_pruefen(erzwingen: bool = False) -> None:
     if not mw.col:
         return
+    # Nicht beim Lernen: das Anlegen waere sonst der oberste Undo-Schritt und der Undo-Knopf loeschte das Deck
+    # statt die letzte Antwort zurueckzunehmen. mtime bleibt ungemerkt, nach dem Lernen kommt es von selbst.
+    if mw.state == "review":
+        return
     pfad = _datei()
     try:
         mtime = os.path.getmtime(pfad)
@@ -310,10 +314,10 @@ Reviewer._get_next_v3_card = _naechste
 
 def _vor_antwort(ease_tuple, reviewer, card):
     # Gefilterte Karten liegen oft nicht oben in Ankis Warteschlange: die erst zuruecksetzen
-    _zustand["frei_schritt"] = None
+    alt, _zustand["frei_schritt"] = _zustand["frei_schritt"], None   # noch gesetzt = letzte Antwort schlug fehl
     if _zustand["gefiltert"]:
         try:
-            _zustand["frei_schritt"] = auswahl.frei(mw.col, card)
+            _zustand["frei_schritt"] = auswahl.frei(mw.col, card, alt)
         except Exception:
             traceback.print_exc()
     return ease_tuple
@@ -487,7 +491,8 @@ def _zurueck() -> None:
     if not col or not r.card:
         return
     status = col.undo_status()
-    art = extras.undo_art(r.state, status.last_step, _zustand["gezeigt"], r.card.id, status.undo, _zustand["antwort_name"])
+    art = extras.undo_art(r.state, status.last_step, _zustand["gezeigt"], r.card.id, status.undo, _zustand["antwort_name"],
+                          extras.sperr_namen(col))
     if art == "frage":
         _zustand["gezeigt"] = (None, None)
         _zustand["redo"].append(("frage", r.card.id))
@@ -495,7 +500,7 @@ def _zurueck() -> None:
         r._showQuestion()
         _redo_knopf()
         return
-    if not status.undo:
+    if not status.undo or art == "sperre":
         tooltip("Nothing to undo")
         return
     _zustand["zurueck"] = art == "antwort"

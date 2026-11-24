@@ -92,13 +92,18 @@ def naechste(col, did: int, neu: bool, mc: bool, zuerst: int | None = None) -> Q
 FREI = "lernbalkenFrei"
 
 
-def frei(col, card) -> int:
+def frei(col, card, alt: int | None = None) -> int:
     """Ankis Warteschlange zuruecksetzen, damit jede Karte beantwortet werden darf.
     Dazu wird das Deck der Karte gespeichert (ein unsichtbarer Zeitstempel): jede Deck-Aenderung baut Ankis
     Warteschlange neu. Nicht extend_limits, das loescht Ankis ganze Undo-Liste (Undo ging dann nur einen Schritt).
     Gibt den Undo-Schritt zurueck; die Antwort wird danach mit merge_undo_entries angehaengt, so bleibt es
-    ein Schritt mit Ankis Namen fuer Antworten."""
-    schritt = col.add_custom_undo_entry(col.tr.actions_answer_card())
+    ein Schritt mit Ankis Namen fuer Antworten.
+    alt: Schritt einer frueheren Freigabe, deren Antwort fehlschlug. Liegt er noch oben, wird er weiterverwendet,
+    statt einen zweiten (leeren) "Answer Card"-Schritt anzulegen, den Undo sonst fuer eine Antwort hielte."""
+    if alt and col.undo_status().last_step == alt:
+        schritt = alt
+    else:
+        schritt = col.add_custom_undo_entry(col.tr.actions_answer_card())
     deck = col.decks.get(card.did)
     deck[FREI] = int(time.time() * 1000)
     col.decks.save(deck)

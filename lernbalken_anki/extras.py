@@ -156,11 +156,20 @@ def notiz_speichern(col, note, name: str):
 # Undo-Knopf
 ##########################################################################
 
-def undo_art(ansicht: str, last_step: int, gezeigt: tuple, karte: int, undo_name: str, antwort_name: str | None) -> str:
+def sperr_namen(col) -> set[str]:
+    """Undo-Namen der Aufraeum-Schritte am Important-Deck (Fuellen beim Oeffnen, Leeren in der Deckliste).
+    Die nimmt der Undo-Knopf nicht zurueck: sonst waere das Deck beim Lernen ploetzlich leer oder die
+    markierten Karten fehlten im Block."""
+    return {col.tr.actions_build_filtered_deck(), col.tr.actions_rebuild(), col.tr.studying_empty()}
+
+
+def undo_art(ansicht: str, last_step: int, gezeigt: tuple, karte: int, undo_name: str, antwort_name: str | None,
+             sperre: set[str] = frozenset()) -> str:
     """Was der Undo-Knopf als Naechstes zuruecknimmt:
     "frage"    Rueckseite aufgedeckt und seitdem nichts geaendert -> zurueck zur Frage dieser Karte
     "antwort"  der oberste Undo-Schritt ist eine Antwort -> zuruecknehmen; Anki zeigt die Karte danach als
                Naechstes, das Add-on deckt dann gleich die Rueckseite auf
+    "sperre"   oberster Schritt ist ein Aufraeum-Schritt am Important-Deck (sperr_namen) -> nichts tun
     "anki"     sonst: Ankis normales Rueckgaengig (Stern, Bild, ...)
     Antworten erkennt man an Ankis Undo-Namen ("Answer Card"), nicht an der Schrittnummer: nach jedem
     Rueckgaengig vergibt Anki neue Nummern, eine gemerkte Nummer passt dann nicht mehr."""
@@ -168,6 +177,8 @@ def undo_art(ansicht: str, last_step: int, gezeigt: tuple, karte: int, undo_name
         return "frage"
     if antwort_name and undo_name == antwort_name:
         return "antwort"
+    if undo_name in sperre:
+        return "sperre"
     return "anki"
 
 

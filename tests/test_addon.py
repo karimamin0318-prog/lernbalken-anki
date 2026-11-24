@@ -255,6 +255,44 @@ def test_undo_mehrere_schritte(ordner):
     col.close()
 
 
+def test_undo_laesst_important_aufraeumen_in_ruhe(ordner):
+    """Fuellen beim Oeffnen und Leeren in der Deckliste sind Anki-Undo-Schritte. Der Undo-Knopf darf sie nicht
+    zuruecknehmen: sonst ist das Important-Deck beim Lernen ploetzlich leer bzw. die Karten fehlen im Block."""
+    col = neue_sammlung(ordner, "sperre.anki2")
+    karten(col, "F::LB1::B1", 2, tag=wichtig.TAG)
+    w = wichtig.deck_id(col, "F", erzeugen=True)
+    sperre = extras.sperr_namen(col)
+
+    def art(karte):
+        st = col.undo_status()
+        return extras.undo_art("question", st.last_step, (None, None), karte, st.undo, "Answer Card", sperre)
+
+    wichtig.fuellen(col, w)                               # Important geoeffnet
+    assert art(1) == "sperre", col.undo_status().undo
+    wichtig.leeren_alle(col)                              # zurueck in der Deckliste
+    assert art(1) == "sperre", col.undo_status().undo
+    n = col.get_note(col.find_notes("")[0])
+    n.add_tag("x")
+    col.update_note(n)
+    assert art(1) == "anki", "anderes nimmt Undo weiter zurueck"
+    col.close()
+
+
+def test_frei_nach_fehlgeschlagener_antwort(ordner):
+    """Schlug eine Antwort fehl, liegt ein leerer "Answer Card"-Schritt oben. Die naechste Freigabe nimmt ihn
+    weiter, statt einen zweiten anzulegen."""
+    col = neue_sammlung(ordner, "frei_alt.anki2")
+    karten(col, "F", 2)
+    c = col.get_card(col.find_cards("")[0])
+    alt = auswahl.frei(col, c)                            # ... Antwort schlug fehl
+    assert auswahl.frei(col, c, alt) == alt
+    n = col.get_note(c.nid)
+    n.add_tag("x")
+    col.update_note(n)                                    # inzwischen etwas anderes gemacht
+    assert auswahl.frei(col, c, alt) != alt
+    col.close()
+
+
 def test_redo_knopf():
     B, A, C = 2, 1, 3
     assert extras.redo_art([], "question", C, False) is None, "ohne Undo grau"

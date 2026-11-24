@@ -167,6 +167,7 @@ def kartentyp(col, name: str):
     return m
 
 
-def kartentypen_auffrischen(col) -> list[str]:
-    """Bringt die vorhandenen Kartentypen auf den Stand. Gibt die Namen der vorhandenen zurueck."""
-    return [n for n in KARTENTYPEN if kartentyp(col, n) is not None]
+def kartentypen_auffrischen(col) -> None:
+    """Bringt die vorhandenen Kartentypen auf den Stand."""
+    for n in KARTENTYPEN:
+        kartentyp(col, n)
