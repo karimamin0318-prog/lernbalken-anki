@@ -76,9 +76,19 @@ def karten_stand(typ: int, queue: int, due: int, heute: int) -> str | None:
     return "leer"
 
 
-def fortschritt(karten: list[tuple[int, int, int]], heute: int) -> tuple[float, float, int]:
-    """Prozent fest, Prozent offen (je 0 bis 100) und Anzahl zaehlender Karten. karten: (type, queue, due)."""
-    staende = [s for s in (karten_stand(*k, heute) for k in karten) if s]
+def speedrun_stand(typ: int, queue: int, erste: int | None, seit: int) -> str | None:
+    """Stand im Speedrun (New only): "fest" = seit dem Einschalten zum ersten Mal beantwortet, "leer" = noch neu.
+    None = gehoert nicht dazu (schon vorher gesehen oder ausgesetzt). erste = Zeit der ersten Antwort (ms)."""
+    if queue == -1:
+        return None
+    if typ == 0:
+        return "leer"
+    return "fest" if erste is not None and erste >= seit else None
+
+
+def anteile(staende) -> tuple[float, float, int]:
+    """Prozent fest, Prozent offen (je 0 bis 100) und Anzahl zaehlender Karten. None in staende zaehlt nicht."""
+    staende = [s for s in staende if s]
     if not staende:
         return 0.0, 0.0, 0
     n = len(staende)

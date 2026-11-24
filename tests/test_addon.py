@@ -318,7 +318,7 @@ def test_balken_hell_und_kraeftig(ordner):
     assert core.karten_stand(2, 2, 100, 100) == "leer"
     assert core.karten_stand(2, 2, 101, 100) == "fest"
     assert core.karten_stand(2, -1, 101, 100) is None
-    assert core.fortschritt([], 100) == (0.0, 0.0, 0)
+    assert core.anteile([]) == (0.0, 0.0, 0)
     # In der Sammlung, 4 Karten: 5 min -> hell, Tomorrow -> kraeftig (eine ganze Karte), heute faellig -> leer
     col = neue_sammlung(ordner, "hell.anki2")
     karten(col, "T", 4)
@@ -443,6 +443,32 @@ def test_undo_karte_auch_nach_ankis_rueckgaengig(ordner):
     assert extras.zuletzt_beantwortet(col) == c
     col.undo()                                                       # Undo-Knopf: C zurueck
     assert extras.zuletzt_beantwortet(col) == a, "naechstes Undo nimmt A zurueck, nicht B"
+    col.close()
+
+def test_balken_folgt_den_filtern(ordner):
+    # 4 Flashcards + 2 MC-Fragen, eine Flashcard schon vor dem Speedrun gesehen
+    col = neue_sammlung(ordner, "balken_filter.anki2")
+    karten(col, "F", 4)
+    _mc_karten(col, "F", 2)
+    did = col.decks.id("F")
+    col.decks.select(did)
+    vorher = _antworten(col, auswahl.naechste(col, did, neu=True, mc=False))
+    modus.plane(col, col.get_card(vorher), "1d")
+    seit = int(time.time() * 1000) + 1
+    time.sleep(0.01)
+    # Ohne Filter: 1 von 6 fuer heute erledigt
+    assert colops.deck_fortschritt(col, did)[::2] == (100 / 6, 6)
+    # MC only: nur die 2 MC-Fragen, beide noch offen
+    assert colops.deck_fortschritt(col, did, mc=True) == (0.0, 0.0, 2)
+    # New only: die vorher gesehene Karte zaehlt nicht mit, 5 noch neu
+    assert colops.deck_fortschritt(col, did, neu_seit=seit) == (0.0, 0.0, 5)
+    mc1 = _antworten(col, auswahl.naechste(col, did, neu=True, mc=True))   # erste neue MC-Frage, nur 5 min
+    modus.plane(col, col.get_card(mc1), "5m")
+    assert colops.deck_fortschritt(col, did, neu_seit=seit) == (20.0, 0.0, 5), "im Speedrun zaehlt gesehen = geschafft"
+    assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (50.0, 0.0, 2)
+    assert colops.balken_daten(col, did, mc=True, neu_seit=seit)["karten"] == 2
+    col.undo()   # Antwort zurueck: wieder neu, wieder offen
+    assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (0.0, 0.0, 2)
     col.close()
 
 if __name__ == "__main__":

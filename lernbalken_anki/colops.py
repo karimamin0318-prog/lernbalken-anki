@@ -7,7 +7,7 @@ import re
 
 from anki.utils import ids2str
 
-from .core import deck_plan, fortschritt
+from .core import anteile, deck_plan, karten_stand, speedrun_stand
 
 MC_NAME = "Lernbalken MC"
 KARTE_NAME = "Lernbalken Karte"
@@ -76,13 +76,26 @@ def _deck_ids(col, did) -> str:
     return ids2str(col.decks.deck_and_child_ids(did))
 
 
-def deck_fortschritt(col, did) -> tuple[float, float, int]:
+def deck_fortschritt(col, did, mc: bool = False, neu_seit: int | None = None) -> tuple[float, float, int]:
+    """(Prozent fest, Prozent offen, Anzahl) fuer das Deck mit Unterdecks.
+    mc: nur MC-Fragen. neu_seit (ms): Speedrun, nur Karten, die seit dann zum ersten Mal drankamen oder noch neu sind."""
     ids = _deck_ids(col, did)
+    wo = f"(c.did in {ids} or c.odid in {ids})"
+    if mc:
+        mid = col.models.id_for_name(MC_NAME)
+        if not mid:
+            return 0.0, 0.0, 0
+        wo += f" and n.mid = {int(mid)}"
+    erste = "(select min(r.id) from revlog r where r.cid = c.id)" if neu_seit is not None else "null"
     # In Filterdecks (Important) steht der echte Faelligkeitstag in odue
     karten = col.db.all(
-        f"select type, queue, case when odid and odue then odue else due end from cards where did in {ids} or odid in {ids}"
+        f"select c.type, c.queue, case when c.odid and c.odue then c.odue else c.due end, {erste} "
+        f"from cards c join notes n on n.id = c.nid where {wo}"
     )
-    return fortschritt([(int(t), int(q), int(d)) for t, q, d in karten], col.sched.today)
+    if neu_seit is None:
+        heute = col.sched.today
+        return anteile(karten_stand(int(t), int(q), int(d), heute) for t, q, d, _ in karten)
+    return anteile(speedrun_stand(int(t), int(q), e, neu_seit) for t, q, _, e in karten)
 
 
 def richtig_heute(col, did) -> int:
@@ -96,13 +109,14 @@ def richtig_heute(col, did) -> int:
     ) or 0
 
 
-def balken_daten(col, did) -> dict | None:
+def balken_daten(col, did, mc: bool = False, neu_seit: int | None = None) -> dict | None:
+    """Zahlen fuer den Balken. mc und neu_seit wie bei deck_fortschritt (Schalter MC only / New only)."""
     deck = col.decks.get(did, default=False)
     if not deck:
         return None
     name = deck["name"]
     teile = name.split("::")
-    pct, offen, n = deck_fortschritt(col, did)
+    pct, offen, n = deck_fortschritt(col, did, mc, neu_seit)
     daten = {
         "name": teile[-1],
         "pfad": " › ".join(teile[:-1]),
@@ -116,7 +130,7 @@ def balken_daten(col, did) -> dict | None:
     if len(teile) > 1:
         fach_id = col.decks.id_for_name(teile[0])
         if fach_id:
-            fpct, _, _ = deck_fortschritt(col, fach_id)
+            fpct, _, _ = deck_fortschritt(col, fach_id, mc, neu_seit)
             daten["fach"] = teile[0]
             daten["fachPct"] = round(fpct, 2)
     return daten

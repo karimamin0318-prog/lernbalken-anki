@@ -15,6 +15,7 @@ from __future__ import annotations
 import html
 import json
 import os
+import time
 import traceback
 from functools import partial
 
@@ -133,8 +134,16 @@ def _profil_zu() -> None:
 ##########################################################################
 
 
+def _balken_daten():
+    """Zahlen fuer den Balken, passend zu den Schaltern: MC only zaehlt nur MC-Fragen, New only nur den Speedrun
+    (Karten, die beim Einschalten noch neu waren)."""
+    f, cfg = _filter(), _config()
+    seit = (cfg.get("nur_neu_seit") or (mw.col.sched.day_cutoff - 86400) * 1000) if f["neu"] else None
+    return colops.balken_daten(mw.col, mw.col.decks.get_current_id(), mc=f["mc"], neu_seit=seit)
+
+
 def _daten() -> dict:
-    d = colops.balken_daten(mw.col, mw.col.decks.get_current_id()) or {}
+    d = _balken_daten() or {}
     cfg = _config()
     d["ton"] = {"an": bool(cfg.get("ton", True)), "lautstaerke": float(cfg.get("lautstaerke", 0.35))}
     d["filter"] = _filter()
@@ -165,13 +174,12 @@ def _web_inhalt(web_content, context) -> None:
         web_content.js.append(f"{_WEB}/bilder.js")
 
 
-def _status(neu: str, alt: str) -> None:
-    if neu == "review":
-        _zustand["frisch"] = True
-
-
 def _vor_status(neu: str, alt: str) -> None:
     """Laeuft, bevor Anki den neuen Bildschirm zeichnet, damit die Zahlen gleich stimmen."""
+    if neu == "review":
+        # Hier, nicht erst nach dem Wechsel: Anki zeigt die erste Frage noch vor state_did_change.
+        # Sonst kaemen Balken und Schalter erst nach der ersten Antwort.
+        _zustand["frisch"] = True
     if not mw.col:
         return
     try:
@@ -305,8 +313,10 @@ def _filter_setzen(art: str) -> None:
         return
     cfg = _config()
     cfg[schluessel] = not cfg.get(schluessel)
+    if art == "neu" and cfg[schluessel]:
+        cfg["nur_neu_seit"] = int(time.time() * 1000)   # Speedrun beginnt jetzt, der Balken zaehlt ab hier
     mw.addonManager.writeConfig(__name__, cfg)
-    _js("filter", _filter())
+    _js("setze", _daten())   # Schalter und Balken gleich passend zeigen
     # Frage offen: gleich die passende Karte zeigen. Steht schon die Rueckseite da, gilt es ab der naechsten.
     r = mw.reviewer
     if mw.state == "review" and r.state == "question":
@@ -319,7 +329,7 @@ def _filter_setzen(art: str) -> None:
 
 def _uebersicht(overview, content) -> None:
     try:
-        d = colops.balken_daten(mw.col, mw.col.decks.get_current_id())
+        d = _balken_daten()
     except Exception:
         traceback.print_exc()
         return
@@ -647,7 +657,6 @@ gui_hooks.profile_did_open.append(_profil_offen)
 gui_hooks.profile_will_close.append(_profil_zu)
 gui_hooks.webview_will_set_content.append(_web_inhalt)
 gui_hooks.editor_did_load_note.append(lambda ed: ed.web.eval("window.lbBilderAnpassen && lbBilderAnpassen();"))
-gui_hooks.state_did_change.append(_status)
 gui_hooks.state_will_change.append(_vor_status)
 gui_hooks.reviewer_did_show_question.append(_frage_gezeigt)
 gui_hooks.reviewer_did_show_answer.append(_antwort_gezeigt)

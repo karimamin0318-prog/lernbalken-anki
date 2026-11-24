@@ -13,3 +13,5 @@
 **nur_neu**: `true` = Speedrun: beim Lernen kommen nur Karten, die du noch nie gesehen hast, ohne Tageslimit. Lässt sich auch mit „New only“ im Balken umschalten.
 
 **nur_mc**: `true` = nur Single- und Multiple-Choice-Fragen, keine Flashcards. Lässt sich auch mit „MC only“ im Balken umschalten. Geht zusammen mit `nur_neu`.
+
+**nur_neu_seit**: wird vom Add-on gesetzt, wenn du „New only“ einschaltest (Zeit in ms). Ab da zählt der Balken den Speedrun: Karten, die damals noch neu waren. `0` = ab heute 0 Uhr.
