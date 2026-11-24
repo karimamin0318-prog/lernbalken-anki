@@ -520,6 +520,15 @@ def _bild_speichern(d: dict) -> None:
     CollectionOp(mw, lambda col: extras.notiz_speichern(col, note, "Move image")).success(danach).run_in_background(initiator=r)
 
 
+def _nach_undo(_changes) -> None:
+    """Jedes Rueckgaengig (auch Strg+Z): Balken neu, sonst zeigt er die zurueckgenommene Antwort bis zur naechsten."""
+    if mw.state == "review":
+        try:
+            _js("setze", _daten())
+        except Exception:
+            traceback.print_exc()
+
+
 def _aufdecken() -> None:
     r = mw.reviewer
     if r.state == "question" and r.card:
@@ -658,6 +667,7 @@ gui_hooks.profile_will_close.append(_profil_zu)
 gui_hooks.webview_will_set_content.append(_web_inhalt)
 gui_hooks.editor_did_load_note.append(lambda ed: ed.web.eval("window.lbBilderAnpassen && lbBilderAnpassen();"))
 gui_hooks.state_will_change.append(_vor_status)
+gui_hooks.state_did_undo.append(_nach_undo)
 gui_hooks.reviewer_did_show_question.append(_frage_gezeigt)
 gui_hooks.reviewer_did_show_answer.append(_antwort_gezeigt)
 gui_hooks.reviewer_did_answer_card.append(_beantwortet)
