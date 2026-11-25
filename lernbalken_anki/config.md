@@ -13,3 +13,5 @@
 **nur_mc**: `true` = nur Single- und Multiple-Choice-Fragen, keine Flashcards. Lässt sich auch mit „MC only“ im Balken umschalten. Geht zusammen mit `nur_neu`.
 
 **nur_neu_seit**: wird vom Add-on gesetzt, wenn du „New only“ einschaltest (Zeit in ms). Ab da zählt der Balken den Speedrun: Karten, die damals noch neu waren. `0` = ab heute 0 Uhr.
+
+**bilder_ganz**: `true` = Ankis Image Occlusion wird pro Bild gelernt: nur eine Karte pro Bild (die übrigen Box-Karten setzt das Add-on aus), alle Boxen sind zu und lassen sich einzeln anklicken (Klick = auf, nochmal Klick = wieder zu), die Zeit-Knöpfe sind sofort da. `false` = Ankis normales Verhalten (ausgesetzte Karten bleiben ausgesetzt, die kannst du im Browser wieder aktivieren).

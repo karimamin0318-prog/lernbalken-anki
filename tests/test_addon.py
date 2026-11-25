@@ -536,6 +536,54 @@ def test_balken_folgt_den_filtern(ordner):
     assert colops.deck_fortschritt(col, did, mc=True, neu_seit=seit) == (0.0, 0.0, 2)
     col.close()
 
+
+def _bildnotiz(col, ordner, gruppen: int, deck: str = "Bilder") -> int:
+    """Image-Occlusion-Notiz mit so vielen Gruppen (= Karten bei Anki)."""
+    import base64
+    pfad = os.path.join(ordner, "punkt.png")
+    with open(pfad, "wb") as f:
+        f.write(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="))
+    m = next(m for m in col.models.all() if colops.ist_bildtyp(m))
+    boxen = "".join(f"{{{{c{i}::image-occlusion:rect:left=.{i}:top=.1:width=.05:height=.05:oi=1}}}}" for i in range(1, gruppen + 1))
+    vorher = set(col.find_notes(""))
+    col.add_image_occlusion_note(m["id"], pfad, boxen, "", "", [])
+    nid = (set(col.find_notes("")) - vorher).pop()
+    col.set_deck(col.card_ids_of_note(nid), col.decks.id(deck))
+    return nid
+
+
+def test_bild_eine_karte_pro_bild(ordner):
+    col = neue_sammlung(ordner, "bild.anki2")
+    did = col.decks.id("Bilder")
+    karten(col, "Bilder", 2)
+    a, b = _bildnotiz(col, ordner, 3), _bildnotiz(col, ordner, 1)
+    ganz_aus = _bildnotiz(col, ordner, 2)
+    col.sched.suspend_cards(col.card_ids_of_note(ganz_aus))   # selbst ausgesetzt: bleibt so
+    vorher = len(col.find_cards(""))
+    col.decks.select(did)
+    # Eine Antwort davor muss rueckgaengig machbar bleiben
+    c = col.sched.getCard()
+    col.sched.answerCard(c, 3)
+    assert colops.bildkarten_zusammenfassen(col) == 2
+    assert len(col.find_cards("")) == vorher, "keine Karte geloescht"
+    aktiv = lambda nid: sorted(col.get_card(i).ord for i in col.card_ids_of_note(nid) if col.get_card(i).queue != -1)
+    assert aktiv(a) == [0] and aktiv(b) == [0] and aktiv(ganz_aus) == []
+    assert colops.bildkarten_zusammenfassen(col) == 0, "zweimal: nichts mehr zu tun"
+    # Balken zaehlt pro Bild: 2 Basic + 2 Bilder
+    assert colops.deck_fortschritt(col, did)[2] == 4
+    # Das Aussetzen haengt am letzten Schritt (sonst leert Anki die Undo-Liste): Antwort bleibt rueckgaengig machbar
+    assert col.undo_status().undo == "Answer Card"
+    col.undo()
+    assert col.get_card(c.id).queue == 0
+    assert colops.bildkarten_zusammenfassen(col) == 2 and aktiv(a) == [0]
+    # Ohne vorherigen Schritt: still ausgesetzt
+    col2 = neue_sammlung(ordner, "bild2.anki2")
+    n = _bildnotiz(col2, ordner, 2)
+    assert colops.bildkarten_zusammenfassen(col2) == 1
+    col2.close()
+    col.close()
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
     with tempfile.TemporaryDirectory() as ordner:

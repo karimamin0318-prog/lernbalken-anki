@@ -117,3 +117,54 @@ def kartentypen_auffrischen(col) -> None:
     """Bringt die vorhandenen Kartentypen auf den Stand."""
     for n in KARTENTYPEN:
         kartentyp(col, n)
+
+
+# Image Occlusion: ein Bild = eine Karte
+##########################################################################
+# Anki macht aus jeder Box (Gruppe) eines Bildes eine eigene Karte. Gelernt wird hier pro Bild: die Karte mit der
+# kleinsten Nummer bleibt, alle anderen Karten derselben Notiz werden ausgesetzt. Das Lernfenster zeigt auf der
+# verbliebenen Karte alle Boxen zum Anklicken (web/bildmasken.js). Bestehende Notizen bleiben, wie sie sind.
+
+IO_ART = 6   # StockNotetype.OriginalStockKind.ORIGINAL_STOCK_KIND_IMAGE_OCCLUSION
+
+
+def ist_bildtyp(m) -> bool:
+    if not m:
+        return False
+    if m.get("originalStockKind") == IO_ART:
+        return True
+    return bool(m.get("tmpls")) and "image-occlusion" in m["tmpls"][0].get("qfmt", "")
+
+
+def bildtyp_ids(col) -> list[int]:
+    return [m["id"] for m in col.models.all() if ist_bildtyp(m)]
+
+
+def bildkarten_zusammenfassen(col) -> int:
+    """Setzt pro Image-Occlusion-Notiz alle nicht ausgesetzten Karten aus bis auf die mit der kleinsten Nummer.
+    Notizen, deren Karten schon alle ausgesetzt sind, bleiben in Ruhe. Kein eigener Rueckgaengig-Schritt: das Aussetzen
+    gehoert zum letzten Schritt (meist "Notiz hinzufuegen"). skip_undo_entry ginge nicht, das leert Ankis ganze Undo-Liste.
+    Gibt zurueck, wie viele Karten ausgesetzt wurden."""
+    mids = bildtyp_ids(col)
+    if not mids:
+        return 0
+    ids = col.db.list(
+        "select c.id from cards c join notes n on n.id = c.nid "
+        f"where n.mid in {ids2str(mids)} and c.queue != -1 "
+        "and c.ord > (select min(c2.ord) from cards c2 where c2.nid = c.nid and c2.queue != -1)"
+    )
+    if not ids:
+        return 0
+    karten = [col.get_card(i) for i in ids]
+    for k in karten:
+        k.queue = -1
+    letzter = col.undo_status().last_step
+    if letzter:
+        col.update_cards(karten)
+        try:
+            col.merge_undo_entries(letzter)
+        except Exception:
+            pass   # letzter Schritt war selbst ein Undo/Redo: dann bleibt es ein eigener Schritt "Update Card"
+    else:
+        col.update_cards(karten, skip_undo_entry=True)
+    return len(karten)

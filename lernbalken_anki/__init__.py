@@ -7,6 +7,7 @@
 - Eigene Zeiten: Schalter Anki/Eigene neben More, eigene Knoepfe 5 Min bis Fertig.
 - Zurueck-Knopf neben Edit, Woerter abdecken, Vokabelliste (Buch), Total-Spalte in der Deckliste.
 - Bilder im Editor frei verschieben und groesser/kleiner ziehen.
+- Image Occlusion: pro Bild eine Karte, alle Boxen einzeln per Klick auf- und zudecken.
 """
 
 from __future__ import annotations
@@ -50,6 +51,22 @@ def _filter() -> dict:
     return {"neu": bool(cfg.get("nur_neu")), "mc": bool(cfg.get("nur_mc"))}
 
 
+def _bildmodus(card) -> bool:
+    """Image-Occlusion-Karte, die als ganzes Bild gelernt wird (Schalter bilder_ganz)."""
+    return bool(_config().get("bilder_ganz", True)) and colops.ist_bildtyp(card.note_type())
+
+
+def _bilder_zusammenfassen() -> None:
+    if not mw.col or not _config().get("bilder_ganz", True):
+        return
+    try:
+        n = colops.bildkarten_zusammenfassen(mw.col)
+        if n:
+            _log(f"Image Occlusion: {n} weitere Box-Karten ausgesetzt (ein Bild = eine Karte)")
+    except Exception:
+        traceback.print_exc()
+
+
 def _log(text: str) -> None:
     print(f"[Lernbalken] {text}")
 
@@ -67,6 +84,7 @@ def _profil_offen() -> None:
         wichtig.leeren_alle(mw.col)
     except Exception:
         traceback.print_exc()
+    _bilder_zusammenfassen()
     cfg = _config()
     if not cfg.get("tageswechsel_erledigt"):
         try:
@@ -118,6 +136,8 @@ def _web_inhalt(web_content, context) -> None:
         web_content.css.append(f"{_WEB}/lernen.css")
         web_content.js.append(f"{_WEB}/rahmen.js")
         web_content.js.append(f"{_WEB}/lernen.js")
+        web_content.js.append(f"{_WEB}/bildmasken.js")
+        web_content.head += f"<script>window.lbBilderGanz = {json.dumps(bool(_config().get('bilder_ganz', True)))};</script>"
     if isinstance(context, (Reviewer, DeckBrowser)):
         web_content.css.append(f"{_WEB}/vokabeln.css")
         web_content.js.append(f"{_WEB}/vokabeln.js")
@@ -134,6 +154,8 @@ def _vor_status(neu: str, alt: str) -> None:
         _zustand["frisch"] = True
     if not mw.col:
         return
+    if neu in ("overview", "review"):
+        _bilder_zusammenfassen()   # neu hinzugefuegte Bilder: nur eine Karte pro Bild
     try:
         if neu == "overview":
             # Wichtig-Deck: beim Oeffnen (egal auf welchem Weg) die markierten Karten einsammeln
@@ -188,6 +210,9 @@ def _frage_gezeigt(card) -> None:
             # Antwort zurueckgenommen: Anki zeigt genau diese Karte als Naechstes. Wieder auf die Rueckseite,
             # wo man vor der Antwort war.
             extra = "pycmd('lb_aufdecken');"
+        elif _bildmodus(card):
+            # Bild: gleich die Rueckseite, damit die Zeit-Knoepfe von Anfang an da sind. Aufgedeckt wird per Klick.
+            extra = "pycmd('lb_aufdecken');"
         _zustand["zurueck"] = False
         _karte_js(card, extra)
     except Exception:
@@ -195,8 +220,9 @@ def _frage_gezeigt(card) -> None:
 
 
 def _antwort_gezeigt(card) -> None:
-    # Fuer Undo: solange danach nichts an der Sammlung passiert, ist "Rueckseite aufgedeckt" der letzte Schritt
-    _zustand["gezeigt"] = (mw.col.undo_status().last_step, card.id)
+    # Fuer Undo: solange danach nichts an der Sammlung passiert, ist "Rueckseite aufgedeckt" der letzte Schritt.
+    # Nicht bei Bildern: die springen sofort auf die Rueckseite, ein Schritt zur Frage waere gleich wieder weg.
+    _zustand["gezeigt"] = (None, None) if _bildmodus(card) else (mw.col.undo_status().last_step, card.id)
     # Selbst aufgedeckt (Leertaste) nach Undo zur Frage: das war genau der Redo-Schritt
     if _zustand["redo"] and _zustand["redo"][-1] == ("frage", card.id):
         _zustand["redo"].pop()
@@ -690,6 +716,7 @@ gui_hooks.editor_did_load_note.append(lambda ed: ed.web.eval("window.lbBilderAnp
 gui_hooks.state_will_change.append(_vor_status)
 gui_hooks.state_did_undo.append(_nach_undo)
 gui_hooks.operation_did_execute.append(_redo_knopf)
+gui_hooks.operation_did_execute.append(lambda changes, _h: changes.note_text and _bilder_zusammenfassen())
 gui_hooks.reviewer_did_show_question.append(_frage_gezeigt)
 gui_hooks.reviewer_did_show_answer.append(_antwort_gezeigt)
 gui_hooks.reviewer_did_answer_card.append(_beantwortet)
