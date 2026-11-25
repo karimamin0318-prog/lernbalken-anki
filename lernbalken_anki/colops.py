@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 
@@ -140,24 +141,68 @@ def bildtyp_ids(col) -> list[int]:
     return [m["id"] for m in col.models.all() if ist_bildtyp(m)]
 
 
+MARKE = "lbAus"   # in custom_data der Karten, die das Add-on ausgesetzt hat (unsichtbar, kein Flag)
+
+
+def _daten(k) -> dict:
+    try:
+        d = json.loads(k.custom_data or "{}")
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}
+
+
+def _markieren(k, an: bool) -> None:
+    d = _daten(k)
+    if an:
+        d[MARKE] = 1
+    else:
+        d.pop(MARKE, None)
+    k.custom_data = json.dumps(d, separators=(",", ":")) if d else ""
+
+
+def _warteschlange(k) -> int:
+    """Wie Anki beim Wieder-Aktivieren: neu 0, Wiederholung 2, Lernschritt 1 (Uhrzeit) oder 3 (Tag)."""
+    if k.type in (1, 3):
+        return 1 if k.due > 1_000_000_000 else 3
+    return k.type
+
+
 def bildkarten_zusammenfassen(col) -> int:
-    """Setzt pro Image-Occlusion-Notiz alle nicht ausgesetzten Karten aus bis auf die mit der kleinsten Nummer.
-    Notizen, deren Karten schon alle ausgesetzt sind, bleiben in Ruhe. Kein eigener Rueckgaengig-Schritt: das Aussetzen
-    gehoert zum letzten Schritt (meist "Notiz hinzufuegen"). skip_undo_entry ginge nicht, das leert Ankis ganze Undo-Liste.
-    Gibt zurueck, wie viele Karten ausgesetzt wurden."""
+    """Pro Image-Occlusion-Notiz bleibt die Karte mit der kleinsten Nummer aktiv, die anderen werden ausgesetzt und
+    markiert. Hat ein Bild keine aktive Karte mehr, aber vom Add-on ausgesetzte (z. B. nach "Empty Cards" fehlt die
+    erste Box), wird die kleinste davon wieder aktiv. Selbst ausgesetzte Bilder (ohne Marke) bleiben in Ruhe.
+    Kein eigener Rueckgaengig-Schritt: das gehoert zum letzten Schritt (meist "Notiz hinzufuegen"). skip_undo_entry
+    ginge nicht, das leert Ankis ganze Undo-Liste. Gibt zurueck, wie viele Karten geaendert wurden."""
     mids = bildtyp_ids(col)
     if not mids:
         return 0
-    ids = col.db.list(
-        "select c.id from cards c join notes n on n.id = c.nid "
-        f"where n.mid in {ids2str(mids)} and c.queue != -1 "
+    notizen = f"select id from notes where mid in {ids2str(mids)}"
+    aus = col.db.list(
+        f"select c.id from cards c where c.nid in ({notizen}) and c.queue != -1 "
         "and c.ord > (select min(c2.ord) from cards c2 where c2.nid = c.nid and c2.queue != -1)"
     )
-    if not ids:
-        return 0
-    karten = [col.get_card(i) for i in ids]
-    for k in karten:
+    ohne_aktive = col.db.list(
+        f"select c.id from cards c where c.nid in ({notizen}) and c.queue = -1 "
+        "and not exists (select 1 from cards c2 where c2.nid = c.nid and c2.queue != -1) order by c.nid, c.ord"
+    )
+    karten = []
+    for i in aus:
+        k = col.get_card(i)
         k.queue = -1
+        _markieren(k, True)
+        karten.append(k)
+    erledigt = set()
+    for i in ohne_aktive:
+        k = col.get_card(i)
+        if k.nid in erledigt or not _daten(k).get(MARKE):
+            continue
+        erledigt.add(k.nid)
+        k.queue = _warteschlange(k)
+        _markieren(k, False)
+        karten.append(k)
+    if not karten:
+        return 0
     letzter = col.undo_status().last_step
     if letzter:
         col.update_cards(karten)

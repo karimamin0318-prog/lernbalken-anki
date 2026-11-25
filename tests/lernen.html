@@ -28,6 +28,39 @@
 <script src="../lernbalken_anki/web/vokabeln.js"></script>
 <script src="../lernbalken_anki/web/bilder.js"></script>
 <script>
+  // Ersatz fuer Ankis anki.imageOcclusion (steckt in Ankis reviewer.js): gleiche Schnittstelle, nur Rechtecke,
+  // Lage in Anteilen des Bildes. setup() zeichnet sofort statt nach dem naechsten Frame.
+  (function () {
+    function Rect(o) { for (var k in o) this[k] = o[k]; }
+    function Text(o) { for (var k in o) this[k] = o[k]; }
+    function drawShape(o) {
+      var s = o.shape, w = o.size.width, h = o.size.height, c = o.context;
+      if (s instanceof Text) return;
+      c.fillStyle = o.fill;
+      c.fillRect(s.left * w, s.top * h, s.width * w, s.height * h);
+      if (o.strokeWidth) { c.strokeStyle = o.stroke; c.lineWidth = o.strokeWidth; c.strokeRect(s.left * w, s.top * h, s.width * w, s.height * h); }
+    }
+    window.IO_FORMEN = function () {
+      return {
+        aktiv: [new Rect({ ordinal: 1, left: .1, top: .1, width: .2, height: .3 })],
+        inaktiv: [new Rect({ ordinal: 2, left: .5, top: .1, width: .2, height: .3 }), new Rect({ ordinal: 2, left: .5, top: .6, width: .2, height: .3 }),
+                  new Text({ ordinal: 3, left: .8, top: .8, text: 'Knie' })]
+      };
+    };
+    function setup(opt) {
+      var c = document.getElementById('image-occlusion-canvas'), ctx = c.getContext('2d'), f = IO_FORMEN();
+      c.width = c.width;   // leeren
+      var d = { activeShapes: f.aktiv, inactiveShapes: f.inaktiv, highlightShapes: [],
+                properties: { activeShapeColor: '#ff8e8e', activeBorder: { color: '#212121', width: 1 } } };
+      var neu = opt && opt.onWillDrawShapes ? opt.onWillDrawShapes(d, ctx) || d : d;
+      neu.activeShapes.forEach(function (s) { drawShape({ context: ctx, size: c, shape: s, fill: d.properties.activeShapeColor }); });
+      if (opt && opt.onDidDrawShapes) opt.onDidDrawShapes(neu, ctx);
+    }
+    window.anki = { imageOcclusion: { setup: setup, drawShape: drawShape, Rectangle: Rect, Text: Text } };
+  })();
+</script>
+<script src="../lernbalken_anki/web/bildmasken.js"></script>
+<script>
 (async function () {
   var fehler = [], warte = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   function soll(ok, text) { if (!ok) fehler.push(text); }
@@ -202,6 +235,43 @@
   var ganz = lbRahmen.freieLage({ left: -500, top: sr.top, width: 120, height: 60 }, schmal);
   soll(parseFloat(ganz.left) * 3 + sr.left >= -1, 'nicht aus dem Fenster: ' + JSON.stringify(ganz));
   schmal.remove();
+
+  // Image Occlusion: alle Boxen zu, Klick deckt eine Box (bzw. ihre Gruppe) auf, nochmal Klick wieder zu
+  var io = document.createElement('div');
+  io.id = 'image-occlusion-container';
+  io.style.cssText = 'position:relative;width:400px;height:200px';
+  io.innerHTML = '<canvas id="image-occlusion-canvas" width="200" height="100" style="position:absolute;inset:0;width:100%;height:100%"></canvas>' +
+    '<button id="toggle">Toggle Masks</button>';
+  document.body.appendChild(io);
+  var lw = document.getElementById('image-occlusion-canvas'), lctx = lw.getContext('2d');
+  function farbe(fx, fy) { return lctx.getImageData(Math.floor(fx * lw.width), Math.floor(fy * lw.height), 1, 1).data.slice(0, 4).join(','); }
+  var ZU = '255,142,142,255', LEER = '0,0,0,0';
+  function boxKlick(fx, fy) {
+    var r = lw.getBoundingClientRect();
+    lw.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + fx * r.width, clientY: r.top + fy * r.height }));
+  }
+  anki.imageOcclusion.setup();   // so ruft es die Kartenvorlage auf
+  soll(farbe(.2, .2) === ZU && farbe(.6, .2) === ZU && farbe(.6, .7) === ZU, 'IO: am Anfang nicht alle Boxen zu');
+  soll(document.getElementById('toggle').style.display === 'none', 'IO: Ankis Toggle-Knopf noch sichtbar');
+  boxKlick(.2, .2);
+  soll(farbe(.2, .2) === LEER && farbe(.6, .2) === ZU, 'IO: Klick deckt nicht genau diese Box auf');
+  var rand = lctx.getImageData(Math.floor(.1 * lw.width), Math.floor(.1 * lw.height), 1, Math.floor(.3 * lw.height)).data;
+  soll(Array.prototype.some.call(rand, function (v, i) { return i % 4 === 3 && v > 0; }), 'IO: aufgedeckte Box hat keinen Rand');
+  boxKlick(.6, .2);
+  soll(farbe(.6, .2) === LEER && farbe(.6, .7) === LEER, 'IO: Gruppe geht nicht zusammen auf');
+  boxKlick(.95, .5);
+  soll(JSON.stringify(lbMasken.offen()) === '{"1":true,"2":true}', 'IO: Klick daneben aendert etwas: ' + JSON.stringify(lbMasken.offen()));
+  boxKlick(.2, .2);
+  soll(farbe(.2, .2) === ZU, 'IO: zweiter Klick deckt nicht wieder zu');
+  anki.imageOcclusion.setup();   // naechste Karte
+  soll(farbe(.6, .2) === ZU && JSON.stringify(lbMasken.offen()) === '{}', 'IO: neue Karte nicht wieder ganz zu');
+  window.lbBilderGanz = false;
+  anki.imageOcclusion.setup();
+  soll(farbe(.6, .2) === LEER, 'IO: abgeschaltet, trotzdem alle zu');
+  boxKlick(.2, .2);
+  soll(JSON.stringify(lbMasken.offen()) === '{}', 'IO: abgeschaltet, Klick wirkt trotzdem');
+  window.lbBilderGanz = true;
+  io.remove();
 
   var aus = document.getElementById('ergebnis');
   aus.textContent = fehler.length ? 'FEHLER\n- ' + fehler.join('\n- ') : 'OK';

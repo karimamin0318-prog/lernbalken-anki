@@ -576,6 +576,13 @@ def test_bild_eine_karte_pro_bild(ordner):
     col.undo()
     assert col.get_card(c.id).queue == 0
     assert colops.bildkarten_zusammenfassen(col) == 2 and aktiv(a) == [0]
+    # "Empty Cards" loescht die aktive Karte (erste Box weg): die naechste vom Add-on ausgesetzte wird wieder aktiv
+    erste = next(i for i in col.card_ids_of_note(a) if col.get_card(i).ord == 0)
+    col.remove_cards_and_orphaned_notes([erste])
+    assert aktiv(a) == [], "vorher: Bild haette keine aktive Karte mehr"
+    assert colops.bildkarten_zusammenfassen(col) == 1
+    assert aktiv(a) == [1] and col.get_card(next(i for i in col.card_ids_of_note(a) if col.get_card(i).ord == 1)).custom_data == ""
+    assert aktiv(ganz_aus) == [], "selbst ausgesetzt (ohne Marke): bleibt aus"
     # Ohne vorherigen Schritt: still ausgesetzt
     col2 = neue_sammlung(ordner, "bild2.anki2")
     n = _bildnotiz(col2, ordner, 2)
