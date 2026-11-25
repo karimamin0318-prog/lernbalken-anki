@@ -306,15 +306,36 @@ def _filter_setzen(art: str) -> None:
     if art == "neu" and cfg[schluessel]:
         cfg["nur_neu_seit"] = int(time.time() * 1000)   # Speedrun beginnt jetzt, der Balken zaehlt ab hier
     mw.addonManager.writeConfig(__name__, cfg)
-    _js("setze", _daten())   # Schalter und Balken gleich passend zeigen
+    if mw.state == "review":
+        _js("setze", _daten())   # Schalter und Balken gleich passend zeigen
     # Frage offen: gleich die passende Karte zeigen. Steht schon die Rueckseite da, gilt es ab der naechsten.
     r = mw.reviewer
     if mw.state == "review" and r.state == "question":
         r.nextCard()
+    elif mw.state == "overview":
+        mw.overview.refresh()   # Schalter in der Deck-Uebersicht: Balken und Knoepfe neu zeichnen
 
 
 # Balken in der Deck-Uebersicht (vor dem Lernen)
 ##########################################################################
+
+
+# dieselben Schalter wie im Balken beim Lernen (web/balken.js)
+_SCHALTER = (
+    ("neu", "New only", "Speedrun: only cards you have never seen, no daily limit",
+     '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>'),
+    ("mc", "MC only", "Only single and multiple choice questions, no flashcards",
+     '<rect x="3.5" y="4" width="6" height="6" rx="1.5"/><rect x="3.5" y="14" width="6" height="6" rx="1.5"/><path d="M13 7h8M13 17h8"/>'),
+)
+
+
+def _schalter_html(f: dict) -> str:
+    return "".join(
+        f'<button type="button" class="lb-knopf lb-filter{" an" if f[art] else ""}" aria-pressed="{str(f[art]).lower()}" '
+        f'title="{titel}" onclick="pycmd(&#39;lb_filter:{art}&#39;);return false;">'
+        f'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">{bild}</svg><span>{name}</span></button>'
+        for art, name, titel, bild in _SCHALTER
+    )
 
 
 def _uebersicht(overview, content) -> None:
@@ -331,10 +352,10 @@ def _uebersicht(overview, content) -> None:
     f = _filter()
     an = [t for t, ja in (("New only", f["neu"]), ("MC only", f["mc"])) if ja]
     # Filter an: die Zahlen oben (Anki) zaehlen auch Karten, die gerade nicht kommen
-    hinweis = f'<div class="lb-fuss lb-hinweis">Filter on: {" + ".join(an)} (switch in the bar while studying)</div>' if an else ""
+    hinweis = f'<div class="lb-fuss lb-hinweis">Filter on: {" + ".join(an)} (Anki&#39;s numbers above still count all cards)</div>' if an else ""
     content.table += f"""
 <div id="lb-balken" class="statisch"><div class="lb-innen">
-  <div class="lb-kopf"><span class="lb-name">{html.escape(d["name"])}</span></div>
+  <div class="lb-kopf"><span class="lb-name">{html.escape(d["name"])}</span><span class="lb-rechts">{_schalter_html(f)}</span></div>
   <div class="lb-zeile"><div class="lb-spur"><div class="lb-offen ohne" style="width:{min(100, d["pct"] + d["offen"])}%"></div><div class="lb-fuell ohne" style="width:{d["pct"]}%"></div></div>
   <span class="lb-pct">{zahl(d["pct"])}</span>{zweite}</div>
   <div class="lb-fuss"><span>{links}</span><span>today {d["heute"]} ✓</span></div>
@@ -688,7 +709,7 @@ def _js_nachricht(handled, message: str, context):
         except Exception:
             traceback.print_exc()
         return (True, None)
-    if isinstance(context, Reviewer) and message.startswith("lb_filter:"):
+    if isinstance(context, (Reviewer, Overview)) and message.startswith("lb_filter:"):
         try:
             _filter_setzen(message.split(":", 1)[1])
         except Exception:
