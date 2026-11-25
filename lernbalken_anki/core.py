@@ -1,64 +1,8 @@
-"""Reine Logik ohne Anki-Abhaengigkeit: Lernbalken-Datei lesen, Decknamen ableiten, Fortschritt rechnen."""
+"""Reine Logik ohne Anki-Abhaengigkeit: Fortschritt rechnen, Decks sortieren."""
 
 from __future__ import annotations
 
-import json
-import os
 import re
-
-STANDARD_DATEI = os.path.join(os.path.expanduser("~"), "Lernbalken", "lernbalken.json")
-
-# "LB1 B2 Gelenke & Knie" -> Teil "LB1", Block "B2 Gelenke & Knie". Kuerzel wie "VO3+4" gehen auch,
-# genau wie im Lernbalken (KUERZEL in src/eingang.ts) und in baue_deck.py des Skills.
-_MIT_TEIL = re.compile(r"^\s*(\S+)\s+([Bb]\d+)\b\s*(.*)$")
-# "B2 Gelenke & Knie" (ohne Teil-Kuerzel)
-_NUR_BLOCK = re.compile(r"^\s*([Bb]\d+)\b\s*(.*)$")
-
-
-def _sauber(teil: str) -> str:
-    # "::" trennt in Anki Unterdecks, darf also nicht im Namen stehen
-    return re.sub(r"\s+", " ", teil.replace("::", ":")).strip()
-
-
-def block_pfad(fach: str, block: str) -> tuple[list[str], str | None]:
-    """Deckpfad fuer einen Block und sein Kuerzel (z. B. "B2"), falls vorhanden.
-
-    "LB1 B2 Gelenke & Knie" -> (["B-Lizenz", "LB1", "B2 Gelenke & Knie"], "B2")
-    """
-    fach = _sauber(fach)
-    m = _MIT_TEIL.match(block)
-    if m:
-        teil, nr, titel = m.group(1).upper(), m.group(2).upper(), _sauber(m.group(3))
-        return [fach, teil, f"{nr} {titel}".strip()], nr
-    m = _NUR_BLOCK.match(block)
-    if m:
-        nr, titel = m.group(1).upper(), _sauber(m.group(2))
-        return [fach, f"{nr} {titel}".strip()], nr
-    return [fach, _sauber(block)], None
-
-
-def lies_datei(pfad: str) -> dict | None:
-    try:
-        with open(pfad, encoding="utf-8") as f:
-            daten = json.load(f)
-    except (OSError, ValueError):
-        return None
-    return daten if isinstance(daten, dict) else None
-
-
-def deck_plan(daten: dict) -> list[tuple[list[str], str | None]]:
-    """Alle Decks, die es laut Lernbalken geben soll, in Lernreihenfolge."""
-    plan: list[tuple[list[str], str | None]] = []
-    for fach in daten.get("faecher") or []:
-        name = fach.get("name") if isinstance(fach, dict) else None
-        if not isinstance(name, str) or not name.strip():
-            continue
-        plan.append(([_sauber(name)], None))
-        for block in fach.get("bloecke") or []:
-            bname = block.get("name") if isinstance(block, dict) else None
-            if isinstance(bname, str) and bname.strip():
-                plan.append(block_pfad(name, bname))
-    return plan
 
 
 def karten_stand(typ: int, queue: int, due: int, heute: int) -> str | None:

@@ -1,9 +1,24 @@
 # Lernbalken für Anki
 
-Add-on für Anki 25.09.
+Add-on für Anki 25.09. Läuft für sich allein, die Lernbalken-App braucht es nicht.
 
-- **Decks von selbst:** Es liest `C:\Users\<Name>\Lernbalken\lernbalken.json` und legt für jedes Fach die Decks an: `B-Lizenz › LB1 › B2 Gelenke & Knie`. Neue Blöcke tauchen innerhalb von zwei Sekunden auf, solange Anki läuft. Hat ein Block-Deck dieselbe Nummer, aber einen anderen Titel (`B02 …`, `B2 Alt`), wird es umbenannt statt doppelt angelegt. Gelöscht wird nie etwas.
-- **Kartentypen** (kommen mit der apkg aus dem lernprojekt-Skill, mit festen Ids; das Add-on legt selbst keine an, hält aber ihr Aussehen auf dem Stand von `lernbalken_anki/karte/`):
+## Installation (auch für eine AI, Schritt für Schritt)
+
+1. Anki 25.09 installieren und einmal starten, dann Anki schließen.
+2. Dieses Repo klonen oder als ZIP herunterladen.
+3. Den Ordner `lernbalken_anki` (nur diesen, nicht das ganze Repo) in den Add-on-Ordner von Anki kopieren. Der Ordnername bleibt `lernbalken_anki`:
+   - Windows: `%APPDATA%\Anki2\addons21\lernbalken_anki`
+   - macOS: `~/Library/Application Support/Anki2/addons21/lernbalken_anki`
+   - Linux: `~/.local/share/Anki2/addons21/lernbalken_anki`
+4. Anki starten. Unter Tools → Add-ons steht jetzt „Lernbalken“.
+5. Fragen importieren: Datei → Importieren → die `.apkg` mit den Fragen wählen. Die Kartentypen „Lernbalken MC“ und „Lernbalken Karte“ kommen mit der apkg, das Add-on legt keine eigenen an.
+6. Deck anklicken, „Study Now“. Zum schnellen Durchgehen aller Fragen oben im Balken „New only“ (Blitz) einschalten, für nur Ankreuzfragen zusätzlich „MC only“.
+
+Die Fragen selbst sind nicht in diesem Repo, sie kommen als `.apkg`.
+
+## Was es kann
+
+- **Kartentypen** (kommen mit der apkg, mit festen Ids; das Add-on legt selbst keine an, hält aber ihr Aussehen auf dem Stand von `lernbalken_anki/karte/`):
   - **Lernbalken MC:** Single und Multiple Choice zum Anklicken. Felder `Frage`, `A` bis `F`, `Richtig` (`B` oder `A, C`), `Erklärung`, `Quelle`, `ID`. Die Antworten werden gemischt, die Rückseite zeigt richtig, falsch und verpasst.
   - **Lernbalken Karte:** Flashcard. Felder `Frage`, `Antwort`, `Quelle`, `ID`. Fett geschriebene Wörter in der Antwort erscheinen grün.
 - **Fortschrittsbalken beim Lernen:** oben im Lernfenster und in der Deck-Übersicht. Bei jeder richtigen Antwort lädt er weiter, glitzert, zeigt +1 und klingelt kurz. Alle 5 richtigen in Folge gibt es „5 streak“. Die Prozentzahl steht rechts direkt an der Spur, die Knöpfe New only, MC only, Cover, Vocab und Important oben rechts. Bei „Nochmal“ passiert nichts. Was er misst: wie viel vom gewählten Deck (mit allen Unterdecks) heute erledigt ist. Kräftiges Grün = für heute fertig (Tomorrow, 3 days, Done oder bei Anki ein Abstand ab morgen), helles, halb durchsichtiges Grün dahinter = gerade in Arbeit (5 min, 30 min, 3 h), leer = heute noch zu tun (neu oder heute fällig). Die Prozentzahl zählt nur das kräftige Grün, unten links steht dasselbe fürs ganze Fach.
@@ -14,7 +29,7 @@ Add-on für Anki 25.09.
 - **Total:** In der Deckliste steht nach New / Learn / Due die Spalte „Total“ mit allen Karten des Decks samt Unterdecks.
 - **New only (Speedrun):** Schalter mit Blitz oben im Balken. An: es kommen nur Karten, die du noch nie gesehen hast, ohne Tageslimit, in der Reihenfolge, in der sie angelegt wurden. Jede beantwortete Karte ist danach nicht mehr neu und kommt in diesem Modus nicht wieder. So läufst du einmal schnell durch alle Fragen. Achtung: diese Karten zählen trotzdem für Ankis Tageslimit neuer Karten.
 - **MC only:** Schalter daneben. An: nur Single- und Multiple-Choice-Fragen (Kartentyp „Lernbalken MC“), keine Flashcards. Allein mit Ankis bzw. deiner eigenen Planung, zusammen mit „New only“ alle neuen MC-Fragen. Beide Schalter werden gespeichert. Ist einer an, steht das in der Deck-Übersicht; Ankis Zahlen dort zählen trotzdem alle Karten. Der Balken folgt den Schaltern: Mit „MC only“ zählt er nur MC-Fragen, mit „New only“ zeigt er den Speedrun (von den Karten, die beim Einschalten noch neu waren: kräftig = mit Tomorrow oder später beantwortet, hell = mit 5 min / 30 min / 3 h, leer = noch nicht gesehen; jedes Einschalten startet neu), mit beiden nur die neuen MC-Fragen.
-- **Undo:** Unten links neben „Edit“. Geht Schritt für Schritt zurück, bis zu 30 Antworten (mehr hält Anki nicht), auch mit New only / MC only: Auf der Rückseite zurück zur Frage. Auf der Frage nimmt es die Antwort der vorigen Karte zurück, die dann wieder mit Rückseite dasteht, damit du die Zeit neu wählen kannst. MC-Karten behalten dabei Reihenfolge und Auswahl (die letzten 30 werden gemerkt). Anderes (Stern, Bild verschoben) nimmt es mit Ankis Rückgängig zurück. Das Füllen und Leeren des Important-Decks nimmt es nicht zurück (dort ist dann Schluss), und neue Blöcke aus der Lernbalken-Datei legt es erst nach dem Lernen an, damit sie keinen Undo-Schritt belegen.
+- **Undo:** Unten links neben „Edit“. Geht Schritt für Schritt zurück, bis zu 30 Antworten (mehr hält Anki nicht), auch mit New only / MC only: Auf der Rückseite zurück zur Frage. Auf der Frage nimmt es die Antwort der vorigen Karte zurück, die dann wieder mit Rückseite dasteht, damit du die Zeit neu wählen kannst. MC-Karten behalten dabei Reihenfolge und Auswahl (die letzten 30 werden gemerkt). Anderes (Stern, Bild verschoben) nimmt es mit Ankis Rückgängig zurück. Das Füllen und Leeren des Important-Decks nimmt es nicht zurück (dort ist dann Schluss).
 - **Redo:** Rechts neben Undo, grau, solange es nichts wiederherzustellen gibt. Nach einem oder mehreren Undo geht es damit Schritt für Schritt wieder nach vorne (Rückseite wieder zeigen, Antwort wieder setzen). Sobald du etwas Neues machst (z. B. eine Karte beantwortest), ist Redo wieder grau.
 - **Cover:** Knopf „Cover“ im Balken, dann Text markieren: er wird lila abgedeckt. Mit gedrückter Strg-Taste markiert gehört er zur letzten Gruppe, ohne Strg ist es eine eigene. Klick auf eine Abdeckung deckt die ganze Gruppe auf (nochmal Klick: wieder zu). Rechtsklick bei aktivem Werkzeug löscht die Gruppe. Der Schalter daneben blendet alle Abdeckungen aus und wieder ein. Gemerkt wird pro Frage (unter `lernbalken_abdeckung`).
 - **Vokabeln:** Beim Lernen ein Wort markieren, am Text erscheint „+ Vocab“: Wort und Erklärung eintragen. „Vocab“ im Balken (und „Vocabulary (n)“ in der Deckliste) öffnet „List“ mit Suche, Bearbeiten und Löschen, und „Quiz“: Wort sehen, Leertaste zeigt die Erklärung, 1 = Again, 2 = Got it. Gespeichert unter `lernbalken_vokabeln`.
@@ -22,10 +37,10 @@ Add-on für Anki 25.09.
 
 Gespeichert wird alles in der Sammlung selbst (Reihenfolge und ausgeblendete Decks unter `lernbalken_decks`), also auch nach Neustart und Sync.
 
-**Einstellungen:** Anki → Tools → Add-ons → Lernbalken → Config (`ton`, `lautstaerke`, `lernbalken_datei`, `abdecken`).
+**Einstellungen:** Anki → Tools → Add-ons → Lernbalken → Config (`ton`, `lautstaerke`, `modus`, `abdecken`).
 
 **Tests:** `tests/test_addon.py` mit Ankis Python (Sammlung, Zeiten, Vokabeln, Total). `tests/lernen.html` prüft die Skripte im Lernfenster und Editor (Cover, Undo bei MC, Bilder): im Ordner `python -m http.server 8799` starten und `http://localhost:8799/tests/lernen.html` öffnen, oben steht OK oder FEHLER.
 
 Die Knöpfe und Texte des Add-ons sind englisch, die Karteninhalte bleiben deutsch.
 
-**Installiert** ist es als Verknüpfung: `%APPDATA%\Anki2\addons21\lernbalken_anki` zeigt auf den Ordner hier. Änderungen am Code wirken nach einem Neustart von Anki. Ändert sich etwas an den Kartenvorlagen, danach `npm run skill` im Lernbalken-Ordner, damit der Skill dieselben Vorlagen in seine apkg packt.
+**Zum Weiterentwickeln** statt Kopieren eine Verknüpfung anlegen: `%APPDATA%\Anki2\addons21\lernbalken_anki` zeigt auf den Ordner hier. Änderungen am Code wirken nach einem Neustart von Anki.

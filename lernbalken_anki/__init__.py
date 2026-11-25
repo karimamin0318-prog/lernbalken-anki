@@ -1,6 +1,5 @@
 """Lernbalken fuer Anki.
 
-- Legt Decks aus der Lernbalken-Datei an: Fach > Lehrbrief (LB1, LB2 ...) > Block.
 - Bringt den Kartentyp "Lernbalken MC" fuer Single- und Multiple-Choice mit.
 - Zeigt beim Lernen oben einen Fortschrittsbalken, der bei jeder richtigen Antwort
   weiterlaedt, glitzert, +1 zeigt und kurz klingelt. Bei falschen Antworten passiert nichts.
@@ -14,7 +13,6 @@ from __future__ import annotations
 
 import html
 import json
-import os
 import time
 import traceback
 from functools import partial
@@ -26,18 +24,17 @@ from aqt.editor import Editor
 from aqt.operations.collection import undo
 from aqt.operations import CollectionOp
 from aqt.overview import Overview
-from aqt.qt import QTimer, QWebEngineSettings
+from aqt.qt import QWebEngineSettings
 from aqt.reviewer import Reviewer, ReviewerBottomBar, V3CardInfo
 from aqt.utils import tooltip
 
-from . import auswahl, colops, core, deckliste, extras, modus, wichtig
+from . import auswahl, colops, deckliste, extras, modus, wichtig
 
 _ADDON = mw.addonManager.addonFromModule(__name__)
 _WEB = f"/_addons/{_ADDON}/web"
 mw.addonManager.setWebExports(__name__, r"web/.*\.(css|js)")
 
-_zustand = {"mtime": None, "frisch": True, "wahl": None, "zurueck": False, "antwort_name": None, "gezeigt": (None, None), "total": {}, "zuerst": None, "gefiltert": False, "frei_schritt": None, "redo": []}
-_timer: QTimer | None = None
+_zustand = {"frisch": True, "wahl": None, "zurueck": False, "antwort_name": None, "gezeigt": (None, None), "total": {}, "zuerst": None, "gefiltert": False, "frei_schritt": None, "redo": []}
 
 
 def _config() -> dict:
@@ -53,54 +50,15 @@ def _filter() -> dict:
     return {"neu": bool(cfg.get("nur_neu")), "mc": bool(cfg.get("nur_mc"))}
 
 
-def _datei() -> str:
-    return _config().get("lernbalken_datei") or core.STANDARD_DATEI
-
-
 def _log(text: str) -> None:
     print(f"[Lernbalken] {text}")
 
 
-# Decks aus der Lernbalken-Datei
-##########################################################################
-
-
-def _decks_pruefen(erzwingen: bool = False) -> None:
-    if not mw.col:
-        return
-    # Nicht beim Lernen: das Anlegen waere sonst der oberste Undo-Schritt und der Undo-Knopf loeschte das Deck
-    # statt die letzte Antwort zurueckzunehmen. mtime bleibt ungemerkt, nach dem Lernen kommt es von selbst.
-    if mw.state == "review":
-        return
-    pfad = _datei()
-    try:
-        mtime = os.path.getmtime(pfad)
-    except OSError:
-        return
-    if not erzwingen and mtime == _zustand["mtime"]:
-        return
-    daten = core.lies_datei(pfad)
-    if daten is None:
-        return  # gerade kaputt oder halb geschrieben, beim naechsten Mal wieder
-    _zustand["mtime"] = mtime
-    try:
-        neu = colops.sync_decks(mw.col, daten)
-    except Exception:
-        traceback.print_exc()
-        return
-    if neu:
-        _log("Decks angelegt/umbenannt: " + ", ".join(neu))
-        if mw.state == "deckBrowser":
-            mw.deckBrowser.refresh()
-
-
 def _profil_offen() -> None:
-    global _timer
     try:
         colops.kartentypen_auffrischen(mw.col)
     except Exception:
         traceback.print_exc()
-    _decks_pruefen(erzwingen=True)
     try:
         if wichtig.umbenennen(mw.col):
             _log("Wichtig-Decks heissen jetzt " + wichtig.NAME)
@@ -122,16 +80,6 @@ def _profil_offen() -> None:
     mw.web.settings().setAttribute(
         QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False
     )
-    if _timer is None:
-        _timer = QTimer(mw)
-        _timer.timeout.connect(_decks_pruefen)
-    _timer.start(2000)
-
-
-def _profil_zu() -> None:
-    if _timer:
-        _timer.stop()
-    _zustand["mtime"] = None
 
 
 # Balken im Lernfenster
@@ -737,7 +685,6 @@ gui_hooks.state_shortcuts_will_change.append(_tasten)
 gui_hooks.deck_browser_will_render_content.append(_deckliste_inhalt)
 gui_hooks.webview_did_receive_js_message.append(_js_nachricht)
 gui_hooks.profile_did_open.append(_profil_offen)
-gui_hooks.profile_will_close.append(_profil_zu)
 gui_hooks.webview_will_set_content.append(_web_inhalt)
 gui_hooks.editor_did_load_note.append(lambda ed: ed.web.eval("window.lbBilderAnpassen && lbBilderAnpassen();"))
 gui_hooks.state_will_change.append(_vor_status)

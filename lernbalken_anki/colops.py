@@ -7,65 +7,11 @@ import re
 
 from anki.utils import ids2str
 
-from .core import anteile, deck_plan, karten_stand, speedrun_stand
+from .core import anteile, karten_stand, speedrun_stand
 
 MC_NAME = "Lernbalken MC"
 KARTE_NAME = "Lernbalken Karte"
 _HIER = os.path.dirname(__file__)
-
-
-# Decks
-##########################################################################
-
-
-def sync_decks(col, daten: dict) -> list[str]:
-    """Legt fehlende Decks an. Umbenannte Bloecke (gleiches Kuerzel, neuer Titel) werden umbenannt.
-    Loescht nie etwas. Gibt die geaenderten Decknamen zurueck."""
-    geaendert: list[str] = []
-    for pfad, nr in deck_plan(daten):
-        _, neu = deck_fuer(col, pfad, nr)
-        if neu:
-            geaendert.append("::".join(pfad))
-    return geaendert
-
-
-def deck_fuer(col, pfad: list[str], nr: str | None):
-    """Id des Decks fuer diesen Pfad und ob es neu angelegt oder umbenannt wurde.
-    Ein Deck mit gleichem Kuerzel (z. B. B2) unter demselben Teil gilt als dasselbe und wird umbenannt."""
-    name = "::".join(pfad)
-    did = col.decks.id_for_name(name)
-    if did:
-        return did, False
-    alt = _deck_mit_kuerzel(col, "::".join(pfad[:-1]), nr) if nr and len(pfad) > 1 else None
-    if alt:
-        col.decks.rename(alt, name)
-        return alt, True
-    return col.decks.id(name, create=True), True
-
-
-_NUMMER = re.compile(r"^\s*B(?:lock)?\s*0*(\d+)(?!\d)", re.I)
-
-
-def _nummer(text: str) -> int | None:
-    """"B2", "B02", "B02 Titel", "Block 2: Titel" -> 2"""
-    m = _NUMMER.match(text)
-    return int(m.group(1)) if m else None
-
-
-def _deck_mit_kuerzel(col, eltern: str, nr: str):
-    praefix = eltern.lower() + "::"
-    gesucht = _nummer(nr)
-    if gesucht is None:
-        return None
-    for d in col.decks.all_names_and_ids():
-        if not d.name.lower().startswith(praefix):
-            continue
-        rest = d.name[len(praefix):]
-        if "::" in rest:
-            continue
-        if _nummer(rest) == gesucht:
-            return d.id
-    return None
 
 
 # Fortschritt

@@ -61,33 +61,12 @@ def karten(col, deck: str, anzahl: int, tag: str = "") -> list[int]:
     return nids
 
 
-def test_blocknamen():
-    assert core.block_pfad("B-Lizenz", "LB1 B2 Gelenke & Knie") == (["B-Lizenz", "LB1", "B2 Gelenke & Knie"], "B2")
-    assert core.block_pfad("Bio", "VO3+4 B1 Zelle") == (["Bio", "VO3+4", "B1 Zelle"], "B1")
-    assert core.block_pfad("X", "B4 Nur Block") == (["X", "B4 Nur Block"], "B4")
-    assert core.block_pfad("X", "Freier Name::mit") == (["X", "Freier Name:mit"], None)
-    assert [colops._nummer(t) for t in ["B2", "B02 Titel", "Block 2: X", "B10 Y", "Beweglichkeit"]] == [2, 2, 2, 10, None]
-
-
 def test_reihenfolge():
     assert core.ordne([(1, "B10"), (2, "B2"), (3, "B1")], []) == [3, 2, 1]
     assert core.ordne([(1, "B10"), (2, "B2"), (3, "⭐ Important")], [1]) == [1, 3, 2]
     assert core.verschiebe([1, 2, 3, 4], 4, 2, "vor") == [1, 4, 2, 3]
     assert core.verschiebe([1, 2, 3, 4], 1, 3, "nach") == [2, 3, 1, 4]
     assert core.verschiebe([1, 2], 1, 9, "vor") == [1, 2]
-
-
-def test_decks_aus_lernbalken(ordner):
-    col = neue_sammlung(ordner, "decks.anki2")
-    # Wie nach einem apkg-Import mit anderen Namen: B01 und B1 sind derselbe Block und werden umbenannt
-    col.decks.id("B-Lizenz::LB1::B01 Alter Titel")
-    daten = {"faecher": [{"name": "B-Lizenz", "bloecke": [{"name": "LB1 B1 Zelle"}, {"name": "LB1 B10 Nerven"}]}]}
-    colops.sync_decks(col, daten)
-    namen = {d.name for d in col.decks.all_names_and_ids()}
-    assert "B-Lizenz::LB1::B1 Zelle" in namen and "B-Lizenz::LB1::B10 Nerven" in namen
-    assert not any("Alter Titel" in n for n in namen)
-    assert colops.sync_decks(col, daten) == []  # zweiter Lauf aendert nichts
-    col.close()
 
 
 def test_deckliste_sortieren_und_ausblenden(ordner):
