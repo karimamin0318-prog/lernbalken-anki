@@ -11,6 +11,8 @@ Add-on für Anki 25.09. Läuft für sich allein, die Lernbalken-App braucht es n
 
 Die Fragen selbst sind nicht dabei, sie kommen als `.apkg` (Datei → Importieren). Mit eigenen Decks funktioniert alles außer den Ankreuzfragen, denn die brauchen die Kartentypen aus der `.apkg`.
 
+**Eigene Fragen mit einer KI erstellen:** Im Ordner [`fragen-erstellen`](fragen-erstellen) liegen `ANLEITUNG-FUER-DIE-KI.md` und `baue_deck.py`. Beide Dateien zusammen mit den Lernunterlagen in eine KI hochladen, die Code ausführen kann (z. B. ChatGPT oder Claude), und schreiben: „Lies die Anleitung und mach mir Anki-Fragen zu diesen Unterlagen.“ Die KI gibt eine `.apkg` zurück, die man in Anki importiert. Damit kommen auch die Kartentypen für die Ankreuzfragen mit.
+
 **Neue Version bauen:** `python bauen.py` legt `dist/lernbalken.ankiaddon` an, die dann als Release auf GitHub hochgeladen wird.
 
 ## Installation von Hand (für Entwickler oder eine AI)
