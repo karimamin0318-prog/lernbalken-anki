@@ -234,7 +234,7 @@
     knopfWerkzeug.type = 'button';
     knopfWerkzeug.className = 'lb-knopf lb-werkzeug-knopf';
     knopfWerkzeug.innerHTML = SVG_DECK + '<span>Cover</span>';
-    knopfWerkzeug.title = 'Cover: select text to hide it. Hold Ctrl to add it to the last group. ' +
+    knopfWerkzeug.title = 'Cover: select text to hide it. Hold ' + (/Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl') + ' to add it to the last group. ' +
       'Click a cover to reveal its group, right-click to delete it.';
     knopfWerkzeug.addEventListener('click', function (e) {
       e.preventDefault(); knopfWerkzeug.blur();

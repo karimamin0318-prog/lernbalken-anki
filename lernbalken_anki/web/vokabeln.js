@@ -145,7 +145,7 @@
           '<button type="button" class="lb-vok-zurueck">Cancel</button>' +
           '<button type="submit" class="lb-vok-haupt">Save</button>' +
         '</div>' +
-        '<p class="lb-vok-hinweis">Ctrl + Enter saves</p>' +
+        '<p class="lb-vok-hinweis">' + (/Mac/.test(navigator.platform) ? 'Cmd' : 'Ctrl') + ' + Enter saves</p>' +
       '</form>';
     var f = c.querySelector('form');
     f.addEventListener('submit', function (e) {

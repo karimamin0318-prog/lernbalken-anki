@@ -2,7 +2,18 @@
 
 Add-on für Anki 25.09. Läuft für sich allein, die Lernbalken-App braucht es nicht.
 
-## Installation (auch für eine AI, Schritt für Schritt)
+## Download und Installation (Windows und Mac)
+
+1. **Anki installieren** (kostenlos): [apps.ankiweb.net](https://apps.ankiweb.net), Version 25.09 oder neuer. Auf dem Mac die Datei öffnen und Anki in den Ordner „Programme“ ziehen.
+2. **Add-on herunterladen:** [lernbalken.ankiaddon](https://github.com/karimamin0318-prog/lernbalken-anki/releases/latest/download/lernbalken.ankiaddon)
+3. **Installieren:** Anki öffnen → *Tools → Add-ons → Install from file…* (Mac: *Extras → Add-ons* bzw. *Tools → Add-ons*) → die heruntergeladene Datei wählen. Alternativ die Datei einfach doppelklicken.
+4. **Anki neu starten.** Fertig: beim Lernen erscheint oben der Balken.
+
+Die Fragen selbst sind nicht dabei, sie kommen als `.apkg` (Datei → Importieren). Mit eigenen Decks funktioniert alles außer den Ankreuzfragen, denn die brauchen die Kartentypen aus der `.apkg`.
+
+**Neue Version bauen:** `python bauen.py` legt `dist/lernbalken.ankiaddon` an, die dann als Release auf GitHub hochgeladen wird.
+
+## Installation von Hand (für Entwickler oder eine AI)
 
 1. Anki 25.09 installieren und einmal starten, dann Anki schließen.
 2. Dieses Repo klonen oder als ZIP herunterladen.
